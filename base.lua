@@ -141,7 +141,7 @@ function init()
   love.window.setFullscreen(true)
   width  = love.graphics.getWidth()
   height = love.graphics.getHeight()
-  love.graphics.setFont(love.graphics.newFont(36))
+  love.graphics.setFont(love.graphics.newFont(11))
   love.graphics.setBackgroundColor(.4, .4, .4)
   entities = {}
   addDrawFunction(

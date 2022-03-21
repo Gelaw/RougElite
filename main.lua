@@ -4,12 +4,29 @@ function test()
   local joysticks = love.joystick.getJoysticks()
   joystick = joysticks[1]
   gridSetup()
-  camera.scale = 2
+  cameraSetup()
+
   player = {
     --display
     shape = "rectangle",
     color = {.4, .6, .2},
-    x=10, y=10, width=50, height=50, angle=0,
+    x=10, y=10, width=5, height=5, angle=0, elevation = 0,
+    draw = function (self)
+      love.graphics.push()
+      love.graphics.translate(self.x, self.y)
+      love.graphics.rotate(self.angle)
+      love.graphics.setColor(0, 0, 0, 0.1)
+      love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
+      if not player.invicibility or (math.floor(player.invicibility.time*20))%2~=1 then
+        love.graphics.rotate(-self.angle)
+        love.graphics.translate(0, -1-player.elevation)
+        love.graphics.rotate(self.angle)
+        love.graphics.scale(1+player.elevation*0.3)
+        love.graphics.setColor(player.color)
+        love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
+      end
+      love.graphics.pop()
+    end,
     --movement
     speed={x=0, y=0}, speedDrag= 0.9, maxJoystikAcceleration = 300,
     --actions
@@ -40,37 +57,107 @@ function test()
     elseif joystick:isDown(6) then
       self.dash = {timer = 1, angle = self.angle}
     end
+    if self.jump then
+      self.jump.timer = self.jump.timer + dt
+      if self.jump.timer < self.jump.maxTime then
+        self.elevation = self.jump.maxElevation * (self.jump.timer>.5*self.jump.maxTime and (1-self.jump.timer/self.jump.maxTime) or (self.jump.timer/self.jump.maxTime))
+      else
+        self.jump = nil
+      end
+    elseif joystick:isDown(1) then
+      self.jump = {timer = 0, maxElevation = 8, maxTime = 1}
+    end
   end
   table.insert(entities, player)
-
   camera.mode = {"follow", player}
+
+  addDrawFunction(function ()
+    love.graphics.print(math.floor(player.x) .."\t"..math.floor(player.y), player.x, player.y)
+  end, 8)
+  for i = 1, 10 do
+    ennemy = {
+      shape = "rectangle",
+      color = {.1, .2, .9},
+      x=math.random(-width/2, width/2), y=math.random(-height/2, height/2), width=5, height=5, angle=0,
+      --movement
+      speed={x=0, y=0}, speedDrag= 0.9, maxAcceleration = 90,
+      --actions
+      shootCooldown = 0
+    }
+    ennemy.update = function (self, dt)
+      --follow player
+      self.angle = -math.atan2(self.x - player.x, self.y - player.y)-math.rad(90)
+      if  (self.x<-960 and self.x>960 and self.y<-540 and self.y>540) then
+        self.speed.x = 0
+        self.speed.y = 0
+        self.x = math.max(math.min(self.x, 960), -960)
+        self.y = math.max(math.min(self.y, 540), -540)
+      elseif (math.abs(self.x - player.x) > 60 or math.abs(self.y -  player.y) > 60) then
+        self.speed.x = self.speed.x + self.maxAcceleration*math.cos(self.angle)*dt*math.min(1,math.abs(self.x - player.x)/600)
+        self.speed.y = self.speed.y + self.maxAcceleration*math.sin(self.angle)*dt*math.min(1,math.abs(self.y - player.y)/600)
+      else
+        self.speed.x = self.speed.x * self.speedDrag
+        self.speed.y = self.speed.y * self.speedDrag
+      end
+      self.x = self.x + self.speed.x * dt
+      self.y = self.y + self.speed.y * dt
+      self.shootCooldown = self.shootCooldown - dt
+      if self.shootCooldown <= 0 then
+        if math.abs(self.speed.x) < 0.1 and math.abs(self.speed.y) < 0.1 then
+          self.shootCooldown = .8
+          local projectile = {
+            shape = "rectangle",
+            color = {0, 0, 0},
+            x=self.x + math.cos(self.angle)*5, y=self.y + math.sin(self.angle)*5, width=3, height=1, angle=self.angle, speed = 300,
+            timer = 0,
+            update = function (self, dt)
+              self.timer = self.timer + dt
+              if self.timer > 4 then self.killmenow = true return end
+              self.x = self.x + math.cos(self.angle)*dt*self.speed
+              self.y = self.y + math.sin(self.angle)*dt*self.speed
+            end
+          }
+          table.insert(entities, projectile)
+        end
+      end
+    end
+    table.insert(entities, ennemy)
+  end
+end
+
+function cameraSetup()
+  camera.scale = 6
+  camera.maxScale = 8
+  camera.minScale = 3
+  camera.scaleChangeRate = 2
   addUpdateFunction(
     function (dt)
-      if joystick:isDown(7) then
-        camera.scale = math.max(camera.scale - .2*dt, .5)
+      if joystick:isDown(3) then
+        camera.scale = math.max(camera.scale - camera.scaleChangeRate*dt, camera.minScale)
       else
-        camera.scale = math.min(camera.scale + .2*dt, 2)
+        camera.scale = math.min(camera.scale + camera.scaleChangeRate*dt, camera.maxScale)
       end
     end
   )
 end
-
 function gridSetup()
   --grid
   local canvas = love.graphics.newCanvas(width, height)
 
   love.graphics.setCanvas(canvas)
+  canvas:setFilter("nearest")
   love.graphics.setColor(1,1,1)
   love.graphics.setLineStyle("rough")
-  for x = 1, width, 60 do
+  for x = 1, width, 30 do
     love.graphics.line(x, 0, x, height)
   end
-  for y = 1, height, 60 do
+  for y = 1, height, 30 do
     love.graphics.line(0, y, width, y)
   end
+
   love.graphics.setCanvas()
   addDrawFunction(function ()
-    love.graphics.setColor(1,1,1)
+    love.graphics.setColor(1,1,1, .2)
     love.graphics.draw(canvas, -width/2, -height/2)
   end, 4)
 end
