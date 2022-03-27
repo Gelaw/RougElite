@@ -183,11 +183,14 @@ function init()
               if entity2.radius then
                 m2 = entity2.radius
               elseif entity2.width and entity2.height then
-                m2 = math.pow(entity2.widthentity2.width+entity2.heightentity2.height, .5)
+                m2 = math.pow(entity2.width*entity2.width+entity2.height*entity2.height, .5)
               end
               if math.dist(entity.x, entity.y, entity2.x, entity2.y)<m1+m2 then
                 entity2:collide(entity)
-                entity:collide(entity2)
+                --check in case first collide caused entity to lose his collide function
+                if entity.collide then
+                  entity:collide(entity2)
+                end
               end
             end
           end

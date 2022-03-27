@@ -4,6 +4,19 @@ function test()
   local joysticks = love.joystick.getJoysticks()
   if joysticks then joystick = joysticks[1] end
   gridSetup()
+
+  start()
+  addDrawFunction(function ()
+    love.graphics.push()
+    love.graphics.translate(player.x, player.y)
+    love.graphics.scale(2/camera.scale)
+    love.graphics.print(math.floor(player.x) .."\t"..math.floor(player.y))
+    love.graphics.pop()
+  end, 8)
+
+end
+
+function start()
   cameraSetup()
 
   player = {
@@ -17,40 +30,62 @@ function test()
       love.graphics.rotate(self.angle)
       love.graphics.setColor(0, 0, 0, 0.1)
       love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
-      if not player.invicibility or (math.floor(player.invicibility.time*20))%2~=1 then
+      if not self.invicibility or (math.floor(self.invicibility.time*20))%2~=1 then
         love.graphics.rotate(-self.angle)
-        love.graphics.translate(0, -1-player.elevation)
+        love.graphics.translate(0, -1-self.elevation)
         love.graphics.rotate(self.angle)
-        love.graphics.scale(1+player.elevation*0.3)
-        love.graphics.setColor(player.color)
+        love.graphics.scale(1+self.elevation*0.3)
+        love.graphics.setColor(self.color)
         love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
+      end
+      love.graphics.rotate(-self.angle)
+      love.graphics.translate(-15, -15)
+      for i = 1, 10 do
+        love.graphics.setColor(.1, .1, .2, .3)
+        love.graphics.rectangle("fill", 3*i, 0, 3, 5)
+        if self.vie >= i then
+          love.graphics.setColor(.1, .8, .2, .7)
+          love.graphics.rectangle("fill", 3*i, 0, 3, 5)
+        end
       end
       love.graphics.pop()
     end,
     --movement
-    speed={x=0, y=0}, speedDrag= 0.9, maxJoystikAcceleration = 300,
+    speed={x=0, y=0}, speedDrag= 0.9, maxAcceleration = 300,
     --actions
-    dash = nil
+    dash = nil, jump = nil,
+    --gameplay(?)
+    vie = 10, invicibility = nil,
+    collide = function (self, collider)
+      if self.invicibility or self.jump then return end
+      self.vie = self.vie - 1
+      self.invicibility = {time = .5}
+      if self.vie == 0 then
+        self.update = nil
+        self.collide = nil
+        self.color = {.7, .1, .1}
+      end
+    end
   }
   player.update = function (self, dt)
     local ax, ay = 0, 0
     if joystick then
       a1, a2, a3 = joystick:getAxes()
       if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
-        ax, ay = self.maxJoystikAcceleration*a1*math.abs(a1), self.maxJoystikAcceleration*a2*math.abs(a2)
+        ax, ay = self.maxAcceleration*a1*math.abs(a1), self.maxAcceleration*a2*math.abs(a2)
       end
     end
     if love.keyboard.isDown("z") and not love.keyboard.isDown("s") then
-      ay = -self.maxJoystikAcceleration
+      ay = -self.maxAcceleration
     end
     if love.keyboard.isDown("s") and not love.keyboard.isDown("z") then
-      ay = self.maxJoystikAcceleration
+      ay = self.maxAcceleration
     end
     if love.keyboard.isDown("q") and not love.keyboard.isDown("d") then
-      ax = -self.maxJoystikAcceleration
+      ax = -self.maxAcceleration
     end
     if love.keyboard.isDown("d") and not love.keyboard.isDown("q") then
-      ax = self.maxJoystikAcceleration
+      ax = self.maxAcceleration
     end
     if ax == 0 and ay == 0 then
       self.speed.x = self.speed.x * self.speedDrag
@@ -61,7 +96,10 @@ function test()
     self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
     self.x = self.x + self.speed.x * dt
     self.y = self.y + self.speed.y * dt
-
+    if self.invicibility then
+      self.invicibility.time = self.invicibility.time - dt
+      if self.invicibility.time <= 0 then self.invicibility = nil end
+    end
     if self.dash then
       self.dash.timer = self.dash.timer - dt
       if self.dash.timer < 0 then
@@ -92,13 +130,7 @@ function test()
   table.insert(entities, player)
   camera.mode = {"follow", player}
 
-  addDrawFunction(function ()
-    love.graphics.push()
-    love.graphics.translate(player.x, player.y)
-    love.graphics.scale(2/camera.scale)
-    love.graphics.print(math.floor(player.x) .."\t"..math.floor(player.y))
-    love.graphics.pop()
-  end, 8)
+
 
   for i = 1, 10 do
     local ennemy = {
@@ -155,7 +187,8 @@ function test()
                 if self.timer > 4 then self.killmenow = true return end
                 self.x = self.x + math.cos(self.angle)*dt*self.speed
                 self.y = self.y + math.sin(self.angle)*dt*self.speed
-              end
+              end,
+              collide = function () end
           }
           self.shootCooldown = 0.8
           self.task = "reload"
@@ -171,7 +204,8 @@ function test()
             end
           end
         end
-      }
+      },
+      collide = function () end
     }
     -- ennemy.update = function (self, dt)
       -- --follow player
@@ -241,10 +275,19 @@ function gridSetup()
   end, 4)
 end
 function love.joystickpressed(joystick, button)
-  -- print(button)
+  if player.vie <= 0 then
+    entities = {}
+    table.insert(entities, player)
+    start()
+  end
 end
 function love.keypressed(key, scancode, isrepeat)
   if key == "escape" then
     love.event.quit()
+  end
+  if player.vie <= 0 then
+    entities = {}
+    table.insert(entities, player)
+    start()
   end
 end
