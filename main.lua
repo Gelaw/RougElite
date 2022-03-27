@@ -33,17 +33,32 @@ function test()
     dash = nil
   }
   player.update = function (self, dt)
-    if not joystick then return end
-    a1, a2, a3 = joystick:getAxes()
-
-    if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
-      self.angle = -math.atan2(a1, a2)+math.rad(90)
-      self.speed.x = self.speed.x + self.maxJoystikAcceleration*a1*math.abs(a1)*dt
-      self.speed.y = self.speed.y + self.maxJoystikAcceleration*a2*math.abs(a2)*dt
-    else
+    local ax, ay = 0, 0
+    if joystick then
+      a1, a2, a3 = joystick:getAxes()
+      if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
+        ax, ay = self.maxJoystikAcceleration*a1*math.abs(a1), self.maxJoystikAcceleration*a2*math.abs(a2)
+      end
+    end
+    if love.keyboard.isDown("z") and not love.keyboard.isDown("s") then
+      ay = -self.maxJoystikAcceleration
+    end
+    if love.keyboard.isDown("s") and not love.keyboard.isDown("z") then
+      ay = self.maxJoystikAcceleration
+    end
+    if love.keyboard.isDown("q") and not love.keyboard.isDown("d") then
+      ax = -self.maxJoystikAcceleration
+    end
+    if love.keyboard.isDown("d") and not love.keyboard.isDown("q") then
+      ax = self.maxJoystikAcceleration
+    end
+    if ax == 0 and ay == 0 then
       self.speed.x = self.speed.x * self.speedDrag
       self.speed.y = self.speed.y * self.speedDrag
     end
+    self.speed.x = self.speed.x + ax*dt
+    self.speed.y = self.speed.y + ay*dt
+    self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
     self.x = self.x + self.speed.x * dt
     self.y = self.y + self.speed.y * dt
 
@@ -55,7 +70,7 @@ function test()
         self.x = self.x + math.cos(self.dash.angle)*600 * dt
         self.y = self.y + math.sin(self.dash.angle)*600 * dt
       end
-    elseif joystick:isDown(6) then
+    elseif (joystick and joystick:isDown(6)) or love.keyboard.isDown("lshift") then
       self.dash = {timer = 1, angle = self.angle}
     end
     if self.jump then
@@ -65,10 +80,10 @@ function test()
       else
         self.jump = nil
       end
-    elseif joystick:isDown(1) then
+    elseif (joystick and joystick:isDown(1)) or love.keyboard.isDown("space") then
       self.jump = {timer = 0, maxElevation = 8, maxTime = 1}
     end
-    if joystick:isDown(3) then
+    if (joystick and joystick:isDown(3)) or love.keyboard.isDown("lctrl") then
       camera.scale = math.max(camera.scale - camera.scaleChangeRate*dt, camera.minScale)
     else
       camera.scale = math.min(camera.scale + camera.scaleChangeRate*dt, camera.maxScale)
@@ -227,4 +242,9 @@ function gridSetup()
 end
 function love.joystickpressed(joystick, button)
   -- print(button)
+end
+function love.keypressed(key, scancode, isrepeat)
+  if key == "escape" then
+    love.event.quit()
+  end
 end
