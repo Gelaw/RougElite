@@ -6,6 +6,7 @@ for i = 1, 9 do
 end
 
 function addDrawFunction(draw, layer)
+  layer = layer or 5
   table.insert(draws[layer], draw)
 end
 
