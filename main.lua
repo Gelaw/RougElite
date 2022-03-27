@@ -68,6 +68,11 @@ function test()
     elseif joystick:isDown(1) then
       self.jump = {timer = 0, maxElevation = 8, maxTime = 1}
     end
+    if joystick:isDown(3) then
+      camera.scale = math.max(camera.scale - camera.scaleChangeRate*dt, camera.minScale)
+    else
+      camera.scale = math.min(camera.scale + camera.scaleChangeRate*dt, camera.maxScale)
+    end
   end
   table.insert(entities, player)
   camera.mode = {"follow", player}
@@ -199,15 +204,6 @@ function cameraSetup()
   camera.maxScale = 6
   camera.minScale = 3
   camera.scaleChangeRate = 2
-  addUpdateFunction(
-    function (dt)
-      if joystick:isDown(3) then
-        camera.scale = math.max(camera.scale - camera.scaleChangeRate*dt, camera.minScale)
-      else
-        camera.scale = math.min(camera.scale + camera.scaleChangeRate*dt, camera.maxScale)
-      end
-    end
-  )
 end
 function gridSetup()
   local canvas = love.graphics.newCanvas(width, height)
