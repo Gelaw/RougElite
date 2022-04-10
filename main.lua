@@ -3,6 +3,8 @@ require "base"
 function test()
   local joysticks = love.joystick.getJoysticks()
   if joysticks then joystick = joysticks[1] end
+
+  levelSetup()
   gridSetup()
 
   start()
@@ -49,7 +51,7 @@ function start()
       love.graphics.translate(8, 30)
       love.graphics.scale(.2)
       love.graphics.setColor(0, 0, 0)
-      love.graphics.print(math.floor(player.x) .."\t"..math.floor(player.y))
+      love.graphics.print(math.floor(self.x) .."\t"..math.floor(self.y))
       love.graphics.pop()
     end,
     --movement
@@ -105,9 +107,14 @@ function start()
     self.speed.x = self.speed.x + ax*dt
     self.speed.y = self.speed.y + ay*dt
     self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
-    self.x = self.x + self.speed.x * dt
-    self.y = self.y + self.speed.y * dt
-
+    local newPosition = {x = self.x + self.speed.x * dt, y= self.y + self.speed.y * dt}
+    if wallCollision(self, newPosition) then
+      self.speed.x = 0
+      self.speed.y = 0
+    else
+      self.x = newPosition.x
+      self.y = newPosition.y
+    end
     --gameplay mecanics
     --invicibility
     -- simple timer, with collide and display effects
@@ -183,9 +190,7 @@ function start()
         love.graphics.print(self.IA.task)
       end,
       --movement
-      speed={x=0, y=0}, speedDrag= 0.9, maxAcceleration = 90,
-      --actions
-      shootCooldown = 0,
+      speed={x=0, y=0}, speedDrag= math.random(0, 8)/10, maxAcceleration = math.random(90, 120),
       --behavior
       update = function (self, dt)
         self.IA[self.IA.task](self.IA, self, dt)
@@ -193,17 +198,25 @@ function start()
       IA = {
         --default task
         task = "follow",
-        shootCooldown = 0,
+        shootCooldownTimer = 0, shootCooldown = math.random(1, 9),
+        followDistance = math.random(30, 120), shootDistance = math.random(30, 90),
         follow = function (self, intelligentEntity, dt)
           --turn toward player
           intelligentEntity.angle = -math.atan2(intelligentEntity.x - player.x, intelligentEntity.y - player.y)-math.rad(90)
           --math stuff for movement
-          intelligentEntity.speed.x = intelligentEntity.speed.x + intelligentEntity.maxAcceleration*math.cos(intelligentEntity.angle)*dt*math.min(1,math.abs(intelligentEntity.x - player.x)/600)
-          intelligentEntity.speed.y = intelligentEntity.speed.y + intelligentEntity.maxAcceleration*math.sin(intelligentEntity.angle)*dt*math.min(1,math.abs(intelligentEntity.y - player.y)/600)
-          intelligentEntity.x = intelligentEntity.x + intelligentEntity.speed.x * dt
-          intelligentEntity.y = intelligentEntity.y + intelligentEntity.speed.y * dt
+          intelligentEntity.speed.x = intelligentEntity.speed.x + intelligentEntity.maxAcceleration*math.cos(intelligentEntity.angle)*dt
+          intelligentEntity.speed.y = intelligentEntity.speed.y + intelligentEntity.maxAcceleration*math.sin(intelligentEntity.angle)*dt
+
+          local newPosition = {x = intelligentEntity.x + intelligentEntity.speed.x * dt, y= intelligentEntity.y + intelligentEntity.speed.y * dt}
+          if wallCollision(intelligentEntity, newPosition) then
+            intelligentEntity.speed.x = 0
+            intelligentEntity.speed.y = 0
+          else
+            intelligentEntity.x = newPosition.x
+            intelligentEntity.y = newPosition.y
+          end
           --check if player is close
-          if (math.abs(intelligentEntity.x - player.x) < 60 and math.abs(intelligentEntity.y -  player.y) < 60) then
+          if (math.abs(intelligentEntity.x - player.x) < self.shootDistance and math.abs(intelligentEntity.y -  player.y) < self.shootDistance) then
             --switch to "slowdown" task
             self.task = "slowdown"
           end
@@ -212,8 +225,14 @@ function start()
           --math stuff for movement
           intelligentEntity.speed.x = intelligentEntity.speed.x * intelligentEntity.speedDrag
           intelligentEntity.speed.y = intelligentEntity.speed.y * intelligentEntity.speedDrag
-          intelligentEntity.x = intelligentEntity.x + intelligentEntity.speed.x * dt
-          intelligentEntity.y = intelligentEntity.y + intelligentEntity.speed.y * dt
+          local newPosition = {x = intelligentEntity.x + intelligentEntity.speed.x * dt, y= intelligentEntity.y + intelligentEntity.speed.y * dt}
+          if wallCollision(intelligentEntity, newPosition) then
+            intelligentEntity.speed.x = 0
+            intelligentEntity.speed.y = 0
+          else
+            intelligentEntity.x = newPosition.x
+            intelligentEntity.y = newPosition.y
+          end
           --check if speed is close to 0
           if math.abs(intelligentEntity.speed.x) < 0.1 and math.abs(intelligentEntity.speed.y) < 0.1 then
             -- switch to "shoot" task
@@ -241,15 +260,15 @@ function start()
           }
           table.insert(entities, projectile)
           --init a cooldown timer and switch to reload task
-          self.shootCooldown = 0.8
+          self.shootCooldownTimer = self.shootCooldown
           self.task = "reload"
         end,
         reload = function (self, intelligentEntity, dt)
           --cooldown countdown
-          self.shootCooldown = self.shootCooldown - dt
-          if self.shootCooldown <= 0 then
+          self.shootCooldownTimer = self.shootCooldownTimer - dt
+          if self.shootCooldownTimer <= 0 then
             --switch to "follow" task if player is far or "shoot" task otherwise
-            if (math.abs(intelligentEntity.x - player.x) > 100 or math.abs(intelligentEntity.y -  player.y) > 100) then
+            if (math.abs(intelligentEntity.x - player.x) > self.followDistance or math.abs(intelligentEntity.y -  player.y) > self.followDistance) then
               self.task = "follow"
             else
               self.task = "shoot"
@@ -292,6 +311,62 @@ function gridSetup()
   end, 4)
 end
 
+function levelSetup()
+  --wall Generation
+  walls = {
+  }
+  p1 =p1 or {x=-500, y=-500}
+  p2 = p2 or  {x=500, y=500}
+  table.insert(walls, {p1, {x=p1.x, y=p2.y}})
+  table.insert(walls, {p1, {x=p2.x, y=p1.y}})
+  table.insert(walls, {{x=p1.x, y=p2.y}, p2})
+  table.insert(walls, {p2, {x=p2.x, y=p1.y}})
+  splitRoom(p1, p2)
+  --wall Display
+    -- TODO non urgent setup a image on load to increase display performances
+  addDrawFunction( function ()
+      for w, wall in pairs(walls) do
+        love.graphics.setColor(0, 0, 0)
+        love.graphics.line(wall[1].x, wall[1].y, wall[2].x, wall[2].y)
+      end
+    end
+  )
+end
+
+function splitRoom(p1, p2, horizontal)
+  --debug display
+  local roomcolor = {math.random(), math.random(), math.random(), .2}
+  addDrawFunction(function ()
+    love.graphics.setColor(roomcolor)
+    love.graphics.rectangle("fill", p1.x, p1.y, p2.x-p1.x, p2.y-p1.y)
+  end, 3)
+
+  if horizontal == nil then horizontal = math.random()<.5 end
+  --Recursive breakpoint: room size
+  if math.abs(p2.x - p1.x) > 200 and math.abs(p2.y - p1.y) > 200 then
+    --midPoint : wall and door position
+    local mp = {x=math.random(p1.x+15, p2.x-15), y = math.random(p1.y+15, p2.y+15)}
+    if horizontal then
+      table.insert(walls, {{x=mp.x-30, y=mp.y}, {x=p1.x, y=mp.y}})
+      table.insert(walls, {{x=mp.x+30, y=mp.y}, {x=p2.x, y=mp.y}})
+      splitRoom(p1, {x=p2.x, y=mp.y}, false)
+      splitRoom({x=p1.x, y=mp.y}, p2, false)
+    else
+      table.insert(walls, {{x=mp.x, y=mp.y-30}, {x=mp.x, y=p1.y}})
+      table.insert(walls, {{x=mp.x, y=mp.y+30}, {x=mp.x, y=p2.y}})
+      splitRoom(p1, {x=mp.x, y=p2.y}, true)
+      splitRoom({x=mp.x, y=p1.y}, p2, true)
+    end
+  end
+end
+
+
+function wallCollision(start, destination)
+  for w, wall in pairs(walls) do
+    if checkIntersect(wall[1], wall[2], start, destination) then return true end
+  end
+  return false
+end
 
 function love.joystickpressed(joystick, button)
   if player.vie <= 0 then
