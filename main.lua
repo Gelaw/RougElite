@@ -30,12 +30,12 @@ function start()
       love.graphics.setColor(0, 0, 0, 0.1)
       love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
       --body display (flickering in case of invicibility frames)
+      love.graphics.rotate(-self.angle)
+      love.graphics.translate(0, -1-self.elevation)
+      love.graphics.rotate(self.angle)
+      love.graphics.scale(1+self.elevation*0.3)
       if not self.invicibility or (math.floor(self.invicibility.time*20))%2~=1 then
           -- jump calculations
-        love.graphics.rotate(-self.angle)
-        love.graphics.translate(0, -1-self.elevation)
-        love.graphics.rotate(self.angle)
-        love.graphics.scale(1+self.elevation*0.3)
         love.graphics.setColor(self.color)
         love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
       end
@@ -79,6 +79,7 @@ function start()
       self.update = nil
       self.collide = nil
       self.color = {.7, .1, .1}
+      table.insert(particuleEffects, {x=self.x, y=self.y, color = {.6, .2, .2}, nudge = 5, size = 3, timeLeft = 1})
     end
   })
   table.insert(player.updates,
@@ -262,6 +263,7 @@ function start()
           self.update = nil
           self.collide = nil
           self.color = {.8, .3, .3}
+          table.insert(particuleEffects, {x=self.x, y=self.y, color = {.6, .2, .2}, nudge = 5, size = 3, timeLeft = 1})
         end
       }
     )

@@ -213,7 +213,7 @@ function init()
           if particuleEffect.draw then
             particuleEffect:draw()
           else
-            drawParticuleEffect(entity)
+            drawParticuleEffect(particuleEffect)
           end
           love.graphics.pop()
         end
