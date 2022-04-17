@@ -1,9 +1,9 @@
 require "base"
+require "level"
 
 function test()
   local joysticks = love.joystick.getJoysticks()
   if joysticks then joystick = joysticks[1] end
-
   levelSetup()
   gridSetup()
 
@@ -55,7 +55,7 @@ function start()
       love.graphics.pop()
     end,
     --movement
-    speed={x=0, y=0}, speedDrag= 0.9, maxAcceleration = 300,
+    speed={x=0, y=0}, speedDrag= 0.9, maxAcceleration = 3000,
     --actions
     dash = nil, jump = nil,
     --gameplay(?)
@@ -66,6 +66,10 @@ function start()
       --life deduction
       self.vie = self.vie - 1
       self.invicibility = {time = .5}
+      cameraShake(20, .5)
+      if joystick and joystick:isVibrationSupported() then
+        joystick:setVibration(.05, .05, .5)
+      end
       --death check
       if self.vie <= 0 then
         self.update = nil
@@ -98,14 +102,14 @@ function start()
     if love.keyboard.isDown("d") and not love.keyboard.isDown("q") then
       ax = self.maxAcceleration
     end
-    --if no acceleration detected from inputs, slow down player
-    if ax == 0 and ay == 0 then
-      self.speed.x = self.speed.x * self.speedDrag
-      self.speed.y = self.speed.y * self.speedDrag
-    end
+    -- --if no acceleration detected from inputs, slow down player
+    -- if ax == 0 and ay == 0 then
+    --   self.speed.x = self.speed.x * self.speedDrag
+    --   self.speed.y = self.speed.y * self.speedDrag
+    -- end
     --speed, position and orientation calculations
-    self.speed.x = self.speed.x + ax*dt
-    self.speed.y = self.speed.y + ay*dt
+    self.speed.x = (self.speed.x + ax*dt)*self.speedDrag
+    self.speed.y = (self.speed.y + ay*dt)*self.speedDrag
     self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
     local newPosition = {x = self.x + self.speed.x * dt, y= self.y + self.speed.y * dt}
     if wallCollision(self, newPosition) then
@@ -170,7 +174,7 @@ function start()
     end
   end
   table.insert(entities, player)
-  --use in base camera.update
+  --use in base camera.update()
   camera.mode = {"follow", player}
 
 
@@ -282,10 +286,11 @@ function start()
     table.insert(entities, ennemy)
   end
 end
+
 --variables used in player update
 function cameraSetup()
-  camera.scale = 4
-  camera.maxScale = 6
+  camera.scale = 1--4
+  camera.maxScale = 1--6
   camera.minScale = 3
   camera.scaleChangeRate = 2
 end
@@ -310,56 +315,6 @@ function gridSetup()
     love.graphics.draw(canvas, -width/2, -height/2)
   end, 4)
 end
-
-function levelSetup()
-  --wall Generation
-  walls = {
-  }
-  p1 =p1 or {x=-500, y=-500}
-  p2 = p2 or  {x=500, y=500}
-  table.insert(walls, {p1, {x=p1.x, y=p2.y}})
-  table.insert(walls, {p1, {x=p2.x, y=p1.y}})
-  table.insert(walls, {{x=p1.x, y=p2.y}, p2})
-  table.insert(walls, {p2, {x=p2.x, y=p1.y}})
-  splitRoom(p1, p2)
-  --wall Display
-    -- TODO non urgent setup a image on load to increase display performances
-  addDrawFunction( function ()
-      for w, wall in pairs(walls) do
-        love.graphics.setColor(0, 0, 0)
-        love.graphics.line(wall[1].x, wall[1].y, wall[2].x, wall[2].y)
-      end
-    end
-  )
-end
-
-function splitRoom(p1, p2, horizontal)
-  --debug display
-  local roomcolor = {math.random(), math.random(), math.random(), .2}
-  addDrawFunction(function ()
-    love.graphics.setColor(roomcolor)
-    love.graphics.rectangle("fill", p1.x, p1.y, p2.x-p1.x, p2.y-p1.y)
-  end, 3)
-
-  if horizontal == nil then horizontal = math.random()<.5 end
-  --Recursive breakpoint: room size
-  if math.abs(p2.x - p1.x) > 200 and math.abs(p2.y - p1.y) > 200 then
-    --midPoint : wall and door position
-    local mp = {x=math.random(p1.x+15, p2.x-15), y = math.random(p1.y+15, p2.y+15)}
-    if horizontal then
-      table.insert(walls, {{x=mp.x-30, y=mp.y}, {x=p1.x, y=mp.y}})
-      table.insert(walls, {{x=mp.x+30, y=mp.y}, {x=p2.x, y=mp.y}})
-      splitRoom(p1, {x=p2.x, y=mp.y}, false)
-      splitRoom({x=p1.x, y=mp.y}, p2, false)
-    else
-      table.insert(walls, {{x=mp.x, y=mp.y-30}, {x=mp.x, y=p1.y}})
-      table.insert(walls, {{x=mp.x, y=mp.y+30}, {x=mp.x, y=p2.y}})
-      splitRoom(p1, {x=mp.x, y=p2.y}, true)
-      splitRoom({x=mp.x, y=p1.y}, p2, true)
-    end
-  end
-end
-
 
 function wallCollision(start, destination)
   for w, wall in pairs(walls) do
