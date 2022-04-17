@@ -17,7 +17,7 @@ function start()
   levelSetup()
   cameraSetup()
 
-  player = applyParams(movingEntityInit(),  {
+  player = applyParams(livingEntityInit(movingEntityInit()),  {
     --display
     shape = nil,
     color = {.4, .6, .2},
@@ -45,7 +45,7 @@ function start()
       for i = 1, 10 do
         love.graphics.setColor(.1, .1, .2, .3)
         love.graphics.rectangle("fill", 3*i, 0, 3, 5)
-        if self.vie >= i then
+        if self.life >= i then
           love.graphics.setColor(.1, .8, .2, .7)
           love.graphics.rectangle("fill", 3*i, 0, 3, 5)
         end
@@ -60,23 +60,17 @@ function start()
     --actions
     dash = nil, jump = nil,
     --gameplay(?)
-    vie = 10, invicibility = nil,
-    collide = function (self, collider)
-      --collision dismissed in case of invicibility or jump
-      if self.invicibility or self.jump then return end
-      --life deduction
-      self.vie = self.vie - 1
-      self.invicibility = {time = .5}
+    team = 1,
+    onHit = function (self)
       cameraShake(20, .5)
       if joystick and joystick:isVibrationSupported() then
         joystick:setVibration(.05, .05, .5)
       end
-      --death check
-      if self.vie <= 0 then
-        self.update = nil
-        self.collide = nil
-        self.color = {.7, .1, .1}
-      end
+    end,
+    onDeath = function (self)
+      self.update = nil
+      self.collide = nil
+      self.color = {.7, .1, .1}
     end
   })
   table.insert(player.updates,
@@ -110,16 +104,6 @@ function start()
       self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
 
       --gameplay mecanics
-      --invicibility
-      -- simple timer, with collide and display effects
-      if self.invicibility then
-        --timer countdown
-        self.invicibility.time = self.invicibility.time - dt
-        if self.invicibility.time <= 0 then
-          --invicibility end
-          self.invicibility = nil
-        end
-      end
       --dash
       --move player in the direction snapshoted at dash start for a timer
       if self.dash then
@@ -171,7 +155,7 @@ function start()
   --ennemy spawn
   for i = 1, 10 do
     local type = math.random(2)
-    local ennemy = applyParams(movingEntityInit(),
+    local ennemy = applyParams(livingEntityInit(movingEntityInit()),
       {
         color = (type == 1 and  {.1, .2, .9} or {.9, .3, .1}),
         ignoreWalls = type == 1,
@@ -186,6 +170,7 @@ function start()
           love.graphics.print(self.IA.task)
         end,
         speedDrag= math.random(0, 8)/10, maxAcceleration = math.random(45, 60)*type,
+        maxSpeed = 100,
         --behavior
         IA = {
           --default task
@@ -233,6 +218,7 @@ function start()
                   self.x = self.x + math.cos(self.angle)*dt*self.speed
                   self.y = self.y + math.sin(self.angle)*dt*self.speed
                 end,
+                team = 2,
                 collide = function () end
             }
             table.insert(entities, projectile)
@@ -254,7 +240,13 @@ function start()
           end
         },
         --necessary for base collision detection to consider this entity
-        collide = function () end
+        team = 2,
+        life = 1,
+        onDeath = function (self)
+          self.update = nil
+          self.collide = nil
+          self.color = {.8, .3, .3}
+        end
       }
     )
     table.insert(ennemy.updates,
@@ -302,17 +294,18 @@ function wallCollision(start, destination)
 end
 
 function love.joystickpressed(joystick, button)
-  if player.vie <= 0 then
+  if player.life <= 0 then
     entities = {}
     table.insert(entities, player)
     start()
   end
 end
+
 function love.keypressed(key, scancode, isrepeat)
   if key == "escape" then
     love.event.quit()
   end
-  if player.vie <= 0 then
+  if player.life <= 0 then
     entities = {}
     table.insert(entities, player)
     start()
