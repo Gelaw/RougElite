@@ -195,7 +195,7 @@ function init()
             end
           end
         end
-        if entity.killmenow == true then
+        if entity.terminated == true then
           table.remove(entities, e)
         end
       end

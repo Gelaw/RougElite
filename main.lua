@@ -1,10 +1,11 @@
 require "base"
 require "level"
+require "entity"
 
 function test()
   local joysticks = love.joystick.getJoysticks()
   if joysticks then joystick = joysticks[1] end
-  levelSetup()
+
   gridSetup()
 
   start()
@@ -12,13 +13,15 @@ function test()
 end
 
 function start()
+  math.randomseed(os.time())
+  levelSetup()
   cameraSetup()
 
-  player = {
+  player = applyParams(movingEntityInit(),  {
     --display
-    shape = "rectangle",
+    shape = nil,
     color = {.4, .6, .2},
-    x=10, y=10, width=5, height=5, angle=0, elevation = 0,
+    x=10, y=10, elevation = 0,
     draw = function (self)
       love.graphics.push()
       love.graphics.translate(self.x, self.y)
@@ -54,8 +57,6 @@ function start()
       love.graphics.print(math.floor(self.x) .."\t"..math.floor(self.y))
       love.graphics.pop()
     end,
-    --movement
-    speed={x=0, y=0}, speedDrag= 0.9, maxAcceleration = 3000,
     --actions
     dash = nil, jump = nil,
     --gameplay(?)
@@ -77,102 +78,91 @@ function start()
         self.color = {.7, .1, .1}
       end
     end
-  }
-  player.update = function (self, dt)
-    --temporary acceleration variables
-    local ax, ay = 0, 0
-    --if gamepad is connected, use left joystick as input
-    if joystick then
-      a1, a2, a3 = joystick:getAxes()
-      --check if joystick is outside of deadzone (TODO later: parameter 0.3 to be extrated and made modifiable once parameter norm in place)
-      if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
-        ax, ay = self.maxAcceleration*a1*math.abs(a1), self.maxAcceleration*a2*math.abs(a2)
+  })
+  table.insert(player.updates,
+    function (self, dt)
+      --temporary acceleration variables
+      local ax, ay = 0, 0
+      --if gamepad is connected, use left joystick as input
+      if joystick then
+        a1, a2, a3 = joystick:getAxes()
+        --check if joystick is outside of deadzone (TODO later: parameter 0.3 to be extrated and made modifiable once parameter norm in place)
+        if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
+          ax, ay = self.maxAcceleration*a1*math.abs(a1), self.maxAcceleration*a2*math.abs(a2)
+        end
       end
-    end
-    --keyboard ZQSD binds for player movement
-    if love.keyboard.isDown("z") and not love.keyboard.isDown("s") then
-      ay = -self.maxAcceleration
-    end
-    if love.keyboard.isDown("s") and not love.keyboard.isDown("z") then
-      ay = self.maxAcceleration
-    end
-    if love.keyboard.isDown("q") and not love.keyboard.isDown("d") then
-      ax = -self.maxAcceleration
-    end
-    if love.keyboard.isDown("d") and not love.keyboard.isDown("q") then
-      ax = self.maxAcceleration
-    end
-    -- --if no acceleration detected from inputs, slow down player
-    -- if ax == 0 and ay == 0 then
-    --   self.speed.x = self.speed.x * self.speedDrag
-    --   self.speed.y = self.speed.y * self.speedDrag
-    -- end
-    --speed, position and orientation calculations
-    self.speed.x = (self.speed.x + ax*dt)*self.speedDrag
-    self.speed.y = (self.speed.y + ay*dt)*self.speedDrag
-    self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
-    local newPosition = {x = self.x + self.speed.x * dt, y= self.y + self.speed.y * dt}
-    if wallCollision(self, newPosition) then
-      self.speed.x = 0
-      self.speed.y = 0
-    else
-      self.x = newPosition.x
-      self.y = newPosition.y
-    end
-    --gameplay mecanics
-    --invicibility
-    -- simple timer, with collide and display effects
-    if self.invicibility then
-      --timer countdown
-      self.invicibility.time = self.invicibility.time - dt
-      if self.invicibility.time <= 0 then
-        --invicibility end
-        self.invicibility = nil
+      --keyboard ZQSD binds for player movement
+      if love.keyboard.isDown("z") and not love.keyboard.isDown("s") then
+        ay = -self.maxAcceleration
       end
-    end
-    --dash
-    --move player in the direction snapshoted at dash start for a timer
-    if self.dash then
-      --timer countdown
-      self.dash.timer = self.dash.timer - dt
-      if self.dash.timer < 0 then
-        --dash end
-        self.dash = nil
-      else
-        --dash physics
-        self.x = self.x + math.cos(self.dash.angle)*200 * dt
-        self.y = self.y + math.sin(self.dash.angle)*200 * dt
+      if love.keyboard.isDown("s") and not love.keyboard.isDown("z") then
+        ay = self.maxAcceleration
       end
-    elseif (joystick and joystick:isDown(6)) or love.keyboard.isDown("lshift") then
-      --dash init
-      self.dash = {timer = 1, angle = self.angle}
-    end
+      if love.keyboard.isDown("q") and not love.keyboard.isDown("d") then
+        ax = -self.maxAcceleration
+      end
+      if love.keyboard.isDown("d") and not love.keyboard.isDown("q") then
+        ax = self.maxAcceleration
+      end
+      --speed, position and orientation calculations
+      self.speed.x = (self.speed.x + ax*dt)*self.speedDrag
+      self.speed.y = (self.speed.y + ay*dt)*self.speedDrag
+      self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
 
-    --jump
-    --change a display variable during a time,prevents collisions during
-    if self.jump then
-      --timer countdown
-      self.jump.timer = self.jump.timer + dt
-      if self.jump.timer < self.jump.maxTime then
-        --display variable update
-        self.elevation = self.jump.maxElevation * (self.jump.timer>.5*self.jump.maxTime and (1-self.jump.timer/self.jump.maxTime) or (self.jump.timer/self.jump.maxTime))
-      else
-        --jump end
-        self.jump = nil
+      --gameplay mecanics
+      --invicibility
+      -- simple timer, with collide and display effects
+      if self.invicibility then
+        --timer countdown
+        self.invicibility.time = self.invicibility.time - dt
+        if self.invicibility.time <= 0 then
+          --invicibility end
+          self.invicibility = nil
+        end
       end
-    elseif (joystick and joystick:isDown(1)) or love.keyboard.isDown("space") then
-      --jump init
-      self.jump = {timer = 0, maxElevation = 8, maxTime = 1}
-    end
+      --dash
+      --move player in the direction snapshoted at dash start for a timer
+      if self.dash then
+        --timer countdown
+        self.dash.timer = self.dash.timer - dt
+        if self.dash.timer < 0 then
+          --dash end
+          self.dash = nil
+        else
+          --dash physics
+          self.x = self.x + math.cos(self.dash.angle)*200 * dt
+          self.y = self.y + math.sin(self.dash.angle)*200 * dt
+        end
+      elseif (joystick and joystick:isDown(6)) or love.keyboard.isDown("lshift") then
+        --dash init
+        self.dash = {timer = 1, angle = self.angle}
+      end
 
-    --camera zoom control
-    -- variables set in "cameraSetup()" method
-    if (joystick and joystick:isDown(3)) or love.keyboard.isDown("lctrl") then
-      camera.scale = math.max(camera.scale - camera.scaleChangeRate*dt, camera.minScale)
-    else
-      camera.scale = math.min(camera.scale + camera.scaleChangeRate*dt, camera.maxScale)
-    end
-  end
+      --jump
+      --change a display variable during a time,prevents collisions during
+      if self.jump then
+        --timer countdown
+        self.jump.timer = self.jump.timer + dt
+        if self.jump.timer < self.jump.maxTime then
+          --display variable update
+          self.elevation = self.jump.maxElevation * (self.jump.timer>.5*self.jump.maxTime and (1-self.jump.timer/self.jump.maxTime) or (self.jump.timer/self.jump.maxTime))
+        else
+          --jump end
+          self.jump = nil
+        end
+      elseif (joystick and joystick:isDown(1)) or love.keyboard.isDown("space") then
+        --jump init
+        self.jump = {timer = 0, maxElevation = 8, maxTime = 1}
+      end
+
+      --camera zoom control
+      -- variables set in "cameraSetup()" method
+      if (joystick and joystick:isDown(3)) or love.keyboard.isDown("lctrl") then
+        camera.scale = math.max(camera.scale - camera.scaleChangeRate*dt, camera.minScale)
+      else
+        camera.scale = math.min(camera.scale + camera.scaleChangeRate*dt, camera.maxScale)
+      end
+    end)
   table.insert(entities, player)
   --use in base camera.update()
   camera.mode = {"follow", player}
@@ -180,109 +170,97 @@ function start()
 
   --ennemy spawn
   for i = 1, 10 do
-    local ennemy = {
-      shape = "rectangle",
-      color = {.1, .2, .9},
-      x=math.random(-width/2, width/2), y=math.random(-height/2, height/2), width=5, height=5, angle=0,
-      draw = function (self)
-        --function defined in base for quick display
-        basicEntityDraw(self)
-        --display current IA task of entity
-        love.graphics.rotate(-self.angle)
-        love.graphics.translate(3, 0)
-        love.graphics.scale(2/camera.scale)
-        love.graphics.print(self.IA.task)
-      end,
-      --movement
-      speed={x=0, y=0}, speedDrag= math.random(0, 8)/10, maxAcceleration = math.random(90, 120),
-      --behavior
-      update = function (self, dt)
-        self.IA[self.IA.task](self.IA, self, dt)
-      end,
-      IA = {
-        --default task
-        task = "follow",
-        shootCooldownTimer = 0, shootCooldown = math.random(1, 9),
-        followDistance = math.random(30, 120), shootDistance = math.random(30, 90),
-        follow = function (self, intelligentEntity, dt)
-          --turn toward player
-          intelligentEntity.angle = -math.atan2(intelligentEntity.x - player.x, intelligentEntity.y - player.y)-math.rad(90)
-          --math stuff for movement
-          intelligentEntity.speed.x = intelligentEntity.speed.x + intelligentEntity.maxAcceleration*math.cos(intelligentEntity.angle)*dt
-          intelligentEntity.speed.y = intelligentEntity.speed.y + intelligentEntity.maxAcceleration*math.sin(intelligentEntity.angle)*dt
+    local type = math.random(2)
+    local ennemy = applyParams(movingEntityInit(),
+      {
+        color = (type == 1 and  {.1, .2, .9} or {.9, .3, .1}),
+        ignoreWalls = type == 1,
+        x=math.random(-width/2, width/2), y=math.random(-height/2, height/2),
+        draw = function (self)
+          --function defined in base for quick display
+          basicEntityDraw(self)
+          --display current IA task of entity
+          love.graphics.rotate(-self.angle)
+          love.graphics.translate(3, 0)
+          love.graphics.scale(2/camera.scale)
+          love.graphics.print(self.IA.task)
+        end,
+        speedDrag= math.random(0, 8)/10, maxAcceleration = math.random(45, 60)*type,
+        --behavior
+        IA = {
+          --default task
+          task = "follow",
+          shootCooldownTimer = 0, shootCooldown = math.random(1, 9),
+          followDistance = math.random(30, 120), shootDistance = math.random(30, 90),
+          follow = function (self, entity, dt)
+            --turn toward player
+            entity.angle = -math.atan2(entity.x - player.x, entity.y - player.y)-math.rad(90)
+            --math stuff for movement
+            entity.speed.x = entity.speed.x + entity.maxAcceleration*math.cos(entity.angle)*dt
+            entity.speed.y = entity.speed.y + entity.maxAcceleration*math.sin(entity.angle)*dt
 
-          local newPosition = {x = intelligentEntity.x + intelligentEntity.speed.x * dt, y= intelligentEntity.y + intelligentEntity.speed.y * dt}
-          if wallCollision(intelligentEntity, newPosition) then
-            intelligentEntity.speed.x = 0
-            intelligentEntity.speed.y = 0
-          else
-            intelligentEntity.x = newPosition.x
-            intelligentEntity.y = newPosition.y
-          end
-          --check if player is close
-          if (math.abs(intelligentEntity.x - player.x) < self.shootDistance and math.abs(intelligentEntity.y -  player.y) < self.shootDistance) then
-            --switch to "slowdown" task
-            self.task = "slowdown"
-          end
-        end,
-        slowdown = function (self, intelligentEntity, dt)
-          --math stuff for movement
-          intelligentEntity.speed.x = intelligentEntity.speed.x * intelligentEntity.speedDrag
-          intelligentEntity.speed.y = intelligentEntity.speed.y * intelligentEntity.speedDrag
-          local newPosition = {x = intelligentEntity.x + intelligentEntity.speed.x * dt, y= intelligentEntity.y + intelligentEntity.speed.y * dt}
-          if wallCollision(intelligentEntity, newPosition) then
-            intelligentEntity.speed.x = 0
-            intelligentEntity.speed.y = 0
-          else
-            intelligentEntity.x = newPosition.x
-            intelligentEntity.y = newPosition.y
-          end
-          --check if speed is close to 0
-          if math.abs(intelligentEntity.speed.x) < 0.1 and math.abs(intelligentEntity.speed.y) < 0.1 then
-            -- switch to "shoot" task
-            self.task = "shoot"
-          end
-        end,
-        shoot = function (self, intelligentEntity, dt)
-          --turn toward player
-          intelligentEntity.angle = -math.atan2(intelligentEntity.x - player.x, intelligentEntity.y - player.y)-math.rad(90)
-          --spawn projectile entity
-          local projectile = {
-              shape = "rectangle",
-              color = {0, 0, 0},
-              x=intelligentEntity.x + math.cos(intelligentEntity.angle)*5,
-              y=intelligentEntity.y + math.sin(intelligentEntity.angle)*5,
-              width=3, height=1, angle=intelligentEntity.angle, speed = 300,
-              timer = 0,
-              update = function (self, dt)
-                self.timer = self.timer + dt
-                if self.timer > 4 then self.killmenow = true return end
-                self.x = self.x + math.cos(self.angle)*dt*self.speed
-                self.y = self.y + math.sin(self.angle)*dt*self.speed
-              end,
-              collide = function () end
-          }
-          table.insert(entities, projectile)
-          --init a cooldown timer and switch to reload task
-          self.shootCooldownTimer = self.shootCooldown
-          self.task = "reload"
-        end,
-        reload = function (self, intelligentEntity, dt)
-          --cooldown countdown
-          self.shootCooldownTimer = self.shootCooldownTimer - dt
-          if self.shootCooldownTimer <= 0 then
-            --switch to "follow" task if player is far or "shoot" task otherwise
-            if (math.abs(intelligentEntity.x - player.x) > self.followDistance or math.abs(intelligentEntity.y -  player.y) > self.followDistance) then
-              self.task = "follow"
-            else
+            --check if player is close
+            if (math.abs(entity.x - player.x) < self.shootDistance and math.abs(entity.y -  player.y) < self.shootDistance) then
+              --switch to "slowdown" task
+              self.task = "slowdown"
+            end
+          end,
+          slowdown = function (self, entity, dt)
+            --math stuff for movement
+            entity.speed.x = entity.speed.x * entity.speedDrag
+            entity.speed.y = entity.speed.y * entity.speedDrag
+            local newPosition = {x = entity.x + entity.speed.x * dt, y= entity.y + entity.speed.y * dt}
+            --check if speed is close to 0
+            if math.abs(entity.speed.x) < 0.1 and math.abs(entity.speed.y) < 0.1 then
+              -- switch to "shoot" task
               self.task = "shoot"
             end
+          end,
+          shoot = function (self, entity, dt)
+            --turn toward player
+            entity.angle = -math.atan2(entity.x - player.x, entity.y - player.y)-math.rad(90)
+            --spawn projectile entity
+            local projectile = {
+                shape = "rectangle",
+                color = {0, 0, 0},
+                x=entity.x + math.cos(entity.angle)*5,
+                y=entity.y + math.sin(entity.angle)*5,
+                width=3, height=1, angle=entity.angle, speed = 300,
+                timer = 0,
+                update = function (self, dt)
+                  self.timer = self.timer + dt
+                  if self.timer > 4 then self.terminated = true return end
+                  self.x = self.x + math.cos(self.angle)*dt*self.speed
+                  self.y = self.y + math.sin(self.angle)*dt*self.speed
+                end,
+                collide = function () end
+            }
+            table.insert(entities, projectile)
+            --init a cooldown timer and switch to reload task
+            self.shootCooldownTimer = self.shootCooldown
+            self.task = "reload"
+          end,
+          reload = function (self, entity, dt)
+            --cooldown countdown
+            self.shootCooldownTimer = self.shootCooldownTimer - dt
+            if self.shootCooldownTimer <= 0 then
+              --switch to "follow" task if player is far or "shoot" task otherwise
+              if (math.abs(entity.x - player.x) > self.followDistance or math.abs(entity.y -  player.y) > self.followDistance) then
+                self.task = "follow"
+              else
+                self.task = "shoot"
+              end
+            end
           end
-        end
-      },
-      --necessary for base collision detection to consider this entity
-      collide = function () end
-    }
+        },
+        --necessary for base collision detection to consider this entity
+        collide = function () end
+      }
+    )
+    table.insert(ennemy.updates,
+      function (self, dt)
+        self.IA[self.IA.task](self.IA, self, dt)
+      end)
     table.insert(entities, ennemy)
   end
 end
