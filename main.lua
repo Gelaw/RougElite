@@ -7,7 +7,7 @@ function test()
   if joysticks then joystick = joysticks[1] end
 
   gridSetup()
-
+  levelDisplayInit()
   start()
 
 end

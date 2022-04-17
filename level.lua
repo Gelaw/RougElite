@@ -1,8 +1,29 @@
 
+function levelDisplayInit()
+
+    --wall Display
+      -- TODO non urgent setup a image on load to increase display performances
+    addDrawFunction( function ()
+        for w, wall in pairs(walls) do
+          love.graphics.setColor(0, 0, 0)
+          love.graphics.line(wall[1].x, wall[1].y, wall[2].x, wall[2].y)
+        end
+      end
+    )
+
+    --room Display
+    addDrawFunction(function ()
+      for r, room in pairs(rooms) do
+        love.graphics.setColor(room.roomcolor)
+        love.graphics.rectangle("fill", room.p1.x, room.p1.y, room.p2.x-room.p1.x, room.p2.y-room.p1.y)
+      end
+    end, 3)
+end
+
 function levelSetup()
   --wall Generation
-  walls = {
-  }
+  walls = {}
+  rooms = {}
   p1 = p1 or {x=-width/2, y=-height/2}
   p2 = p2 or  {x=width/2, y=height/2}
   table.insert(walls, {p1, {x=p1.x, y=p2.y}})
@@ -10,24 +31,10 @@ function levelSetup()
   table.insert(walls, {{x=p1.x, y=p2.y}, p2})
   table.insert(walls, {p2, {x=p2.x, y=p1.y}})
   splitRoom(p1, p2)
-  --wall Display
-    -- TODO non urgent setup a image on load to increase display performances
-  addDrawFunction( function ()
-      for w, wall in pairs(walls) do
-        love.graphics.setColor(0, 0, 0)
-        love.graphics.line(wall[1].x, wall[1].y, wall[2].x, wall[2].y)
-      end
-    end
-  )
 end
 
 function splitRoom(p1, p2, horizontal)
-  --debug display
-  local roomcolor = {math.random(), math.random(), math.random(), .2}
-  addDrawFunction(function ()
-    love.graphics.setColor(roomcolor)
-    love.graphics.rectangle("fill", p1.x, p1.y, p2.x-p1.x, p2.y-p1.y)
-  end, 3)
+
 
   if horizontal == nil then horizontal = math.random()<.5 end
   --Recursive breakpoint: room size
@@ -45,5 +52,8 @@ function splitRoom(p1, p2, horizontal)
       splitRoom(p1, {x=mp.x, y=p2.y}, true)
       splitRoom({x=mp.x, y=p1.y}, p2, true)
     end
+  else
+    local roomcolor = {math.random(), math.random(), math.random(), .2}
+    table.insert(rooms, {p1=p1, p2=p2, roomcolor=roomcolor})
   end
 end
