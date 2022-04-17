@@ -42,12 +42,20 @@ function start()
       --lifebar display
       love.graphics.rotate(-self.angle)
       love.graphics.translate(-15, -15)
-      for i = 1, 10 do
-        love.graphics.setColor(.1, .1, .2, .3)
-        love.graphics.rectangle("fill", 3*i, 0, 3, 5)
-        if self.life >= i then
-          love.graphics.setColor(.1, .8, .2, .7)
-          love.graphics.rectangle("fill", 3*i, 0, 3, 5)
+      love.graphics.setColor(.1, .1, .2, .3)
+      love.graphics.rectangle("fill", 3, 0, 3*10, 5)
+      love.graphics.setColor(.1, .8, .2, .7)
+      love.graphics.rectangle("fill", 3, 0, 3*self.life, 5)
+      for i = 1, self.dashTokens.max do
+        if self.dashTokens.quantity < i then
+          love.graphics.setColor(.1, .1, .2, .3)
+        else
+          love.graphics.setColor(0, .3, .9)
+        end
+        love.graphics.circle("fill", 4+10*(i-1), 5, 3)
+        if self.dashTokens.quantity == i - 1 then
+          love.graphics.setColor(0, .3, .9)
+          love.graphics.arc("fill", 4+10*(i-1), 5, 3, -math.pi/2+ 2*math.pi*(1-self.dashTokens.timer/3), -math.pi/2)
         end
       end
       --position display
@@ -58,7 +66,7 @@ function start()
       love.graphics.pop()
     end,
     --actions
-    dash = nil, jump = nil,
+    dash = nil, dashTokens = {quantity = 3, timer = 2, max = 3}, jump = nil,
     --gameplay(?)
     team = 1,
     onHit = function (self)
@@ -106,6 +114,13 @@ function start()
       --gameplay mecanics
       --dash
       --move player in the direction snapshoted at dash start for a timer
+      if self.dashTokens.quantity < self.dashTokens.max then
+        self.dashTokens.timer = self.dashTokens.timer - dt
+        if self.dashTokens.timer <= 0 then
+          self.dashTokens.quantity = self.dashTokens.quantity + 1
+          self.dashTokens.timer = 3
+        end
+      end
       if self.dash then
         --timer countdown
         self.dash.timer = self.dash.timer - dt
@@ -117,8 +132,9 @@ function start()
           self.x = self.x + math.cos(self.dash.angle)*200 * dt
           self.y = self.y + math.sin(self.dash.angle)*200 * dt
         end
-      elseif (joystick and joystick:isDown(6)) or love.keyboard.isDown("lshift") then
+      elseif ((joystick and joystick:isDown(6)) or love.keyboard.isDown("lshift")) and self.dashTokens.quantity > 0 then
         --dash init
+        self.dashTokens.quantity = self.dashTokens.quantity - 1
         self.dash = {timer = 1, angle = self.angle}
       end
 
