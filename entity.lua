@@ -76,9 +76,75 @@ function livingEntityInit(entity)
   return entity
 end
 
-function applyParams(entity, parameters)
-  for p, parameter in pairs(parameters) do
-    entity[p] = parameter
-  end
+function newAbility()
+  return {
+    update = function (self, dt, caster) end,
+    active = false,
+    activeTimer = 0,
+    activationDuration = 0,
+    baseCooldown = 99,
+    cooldown = 0,
+    charges = 1,
+    maxCharges = 1,
+    castConditions = function () return true end,
+    bindCheck = function () end,
+    activate = function (self)
+      self.activeTimer = self.activationDuration
+      self.active = true
+    end,
+    activeUpdate = function (self, dt)
+      self.activeTimer = self.activeTimer - dt
+    end,
+    deactivate = function (self)
+      self.active = false
+      self.charges = self.charges - 1
+    end,
+    onCooldownStart = function (self)
+      self.cooldown = self.baseCooldown
+    end,
+    cooldownUpdate = function (self, dt, caster)
+      self.cooldown = math.max(self.cooldown - dt, 0)
+    end,
+    onCooldownEnd = function (self)
+      self.charges = self.charges + 1
+    end,
+  }
+end
+
+function ableEntity(entity)
+  local entity = entity or newEntity()
+
+  entity.abilities = {}
+  table.insert(entity.updates,
+    function (self, dt)
+      for a, ability in pairs(self.abilities) do
+        ability:update(dt, caster)
+        if ability.cooldown > 0 then
+          ability:cooldownUpdate(dt, entity)
+          if ability.cooldown <= 0 then
+            ability:onCooldownEnd(entity)
+          end
+        elseif ability.charges < ability.maxCharges then
+          ability:onCooldownStart()
+        end
+        if ability.active then
+
+          ability:activeUpdate(dt, entity)
+          if ability.activeTimer <= 0 then
+            ability:deactivate(caster)
+          end
+        elseif ability.charges > 0 and ability:bindCheck() and ability:castConditions(entity) ~= nil then
+          ability:activate(entity)
+        end
+      end
+    end
+  )
   return entity
+end
+
+function applyParams(table, parameters)
+  for p, parameter in pairs(parameters) do
+    table[p] = parameter
+  end
+  return table
 end

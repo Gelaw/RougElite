@@ -17,11 +17,11 @@ function start()
   levelSetup()
   cameraSetup()
 
-  player = applyParams(livingEntityInit(movingEntityInit()),  {
+  player = applyParams(ableEntity(livingEntityInit(movingEntityInit())),  {
     --display
     shape = nil,
     color = {.4, .6, .2},
-    x=10, y=10, elevation = 0,
+    x=10, y=10, z = 0,
     draw = function (self)
       love.graphics.push()
       love.graphics.translate(self.x, self.y)
@@ -31,9 +31,9 @@ function start()
       love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
       --body display (flickering in case of invicibility frames)
       love.graphics.rotate(-self.angle)
-      love.graphics.translate(0, -1-self.elevation)
+      love.graphics.translate(0, -1-self.z)
       love.graphics.rotate(self.angle)
-      love.graphics.scale(1+self.elevation*0.3)
+      love.graphics.scale(1+self.z*0.3)
       if not self.invicibility or (math.floor(self.invicibility.time*20))%2~=1 then
           -- jump calculations
         love.graphics.setColor(self.color)
@@ -46,16 +46,16 @@ function start()
       love.graphics.rectangle("fill", 3, 0, 3*10, 5)
       love.graphics.setColor(.1, .8, .2, .7)
       love.graphics.rectangle("fill", 3, 0, 3*self.life, 5)
-      for i = 1, self.dashTokens.max do
-        if self.dashTokens.quantity < i then
+      for i = 1, self.abilities.dash.maxCharges do
+        if self.abilities.dash.charges < i then
           love.graphics.setColor(.1, .1, .2, .3)
         else
           love.graphics.setColor(0, .3, .9)
         end
         love.graphics.circle("fill", 4+10*(i-1), 5, 3)
-        if self.dashTokens.quantity == i - 1 then
+        if self.abilities.dash.charges == i - 1 then
           love.graphics.setColor(0, .3, .9)
-          love.graphics.arc("fill", 4+10*(i-1), 5, 3, -math.pi/2+ 2*math.pi*(1-self.dashTokens.timer/3), -math.pi/2)
+          love.graphics.arc("fill", 4+10*(i-1), 5, 3, -math.pi/2+ 2*math.pi*(1-self.abilities.dash.cooldown/self.abilities.dash.baseCooldown), -math.pi/2)
         end
       end
       --position display
@@ -65,14 +65,45 @@ function start()
       love.graphics.print(math.floor(self.x) .."\t"..math.floor(self.y))
       love.graphics.pop()
     end,
-    --actions
-    dash = nil, dashTokens = {quantity = 3, timer = 2, max = 3}, jump = nil,
+    -- actions
+    abilities = {
+      dash = applyParams(newAbility(), {
+        baseCooldown = 1,
+        activationDuration = .3,
+        charges = 3, maxCharges = 3,
+        activate = function (self, caster)
+          self.angle = caster.angle
+          self.activeTimer = self.activationDuration
+          self.active = true
+        end,
+        activeUpdate = function (self, dt, caster)
+          self.activeTimer = self.activeTimer - dt
+          caster.x = caster.x + math.cos(self.angle)*200 * dt
+          caster.y = caster.y + math.sin(self.angle)*200 * dt
+        end,
+        bindCheck = function ()
+          return (joystick and joystick:isDown(6)) or love.keyboard.isDown("lshift")
+        end
+      }),
+      jump = applyParams(newAbility(), {
+        baseCooldown = 0.001,
+        activationDuration = 1,
+        maxZ = 8,
+        activeUpdate = function (self, dt, caster)
+          self.activeTimer = self.activeTimer - dt
+          caster.z = self.maxZ * (self.activeTimer>.5*self.activationDuration and (1-self.activeTimer/self.activationDuration) or (self.activeTimer/self.activationDuration))
+        end,
+        bindCheck = function ()
+          return (joystick and joystick:isDown(1)) or love.keyboard.isDown("space")
+        end
+      }),
+    },
     --gameplay(?)
     team = 1,
     onHit = function (self)
       cameraShake(20, .5)
       if joystick and joystick:isVibrationSupported() then
-        joystick:setVibration(.05, .05, .5)
+        joystick:setVibration(.05, .05, .2 )
       end
     end,
     onDeath = function (self)
@@ -111,50 +142,6 @@ function start()
       self.speed.x = (self.speed.x + ax*dt)*self.speedDrag
       self.speed.y = (self.speed.y + ay*dt)*self.speedDrag
       self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
-
-      --gameplay mecanics
-      --dash
-      --move player in the direction snapshoted at dash start for a timer
-      if self.dashTokens.quantity < self.dashTokens.max then
-        self.dashTokens.timer = self.dashTokens.timer - dt
-        if self.dashTokens.timer <= 0 then
-          self.dashTokens.quantity = self.dashTokens.quantity + 1
-          self.dashTokens.timer = 3
-        end
-      end
-      if self.dash then
-        --timer countdown
-        self.dash.timer = self.dash.timer - dt
-        if self.dash.timer < 0 then
-          --dash end
-          self.dash = nil
-        else
-          --dash physics
-          self.x = self.x + math.cos(self.dash.angle)*200 * dt
-          self.y = self.y + math.sin(self.dash.angle)*200 * dt
-        end
-      elseif ((joystick and joystick:isDown(6)) or love.keyboard.isDown("lshift")) and self.dashTokens.quantity > 0 then
-        --dash init
-        self.dashTokens.quantity = self.dashTokens.quantity - 1
-        self.dash = {timer = 1, angle = self.angle}
-      end
-
-      --jump
-      --change a display variable during a time,prevents collisions during
-      if self.jump then
-        --timer countdown
-        self.jump.timer = self.jump.timer + dt
-        if self.jump.timer < self.jump.maxTime then
-          --display variable update
-          self.elevation = self.jump.maxElevation * (self.jump.timer>.5*self.jump.maxTime and (1-self.jump.timer/self.jump.maxTime) or (self.jump.timer/self.jump.maxTime))
-        else
-          --jump end
-          self.jump = nil
-        end
-      elseif (joystick and joystick:isDown(1)) or love.keyboard.isDown("space") then
-        --jump init
-        self.jump = {timer = 0, maxElevation = 8, maxTime = 1}
-      end
 
       --camera zoom control
       -- variables set in "cameraSetup()" method
@@ -261,6 +248,7 @@ function start()
         life = 1,
         onDeath = function (self)
           self.update = nil
+          self.IA.task = "dead"
           self.collide = nil
           self.color = {.8, .3, .3}
           table.insert(particuleEffects, {x=self.x, y=self.y, color = {.6, .2, .2}, nudge = 5, size = 3, timeLeft = 1})
