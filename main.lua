@@ -97,6 +97,75 @@ function start()
           return (joystick and joystick:isDown(1)) or love.keyboard.isDown("space")
         end
       }),
+      fracasMeutrier = applyParams(newAbility(), {
+        baseCooldown = 5,
+        activationDuration = 3,
+        hitbox = nil,
+        activate = function (self, caster)
+          self.activeTimer = self.activationDuration
+          self.active = true
+          self.keyReleased = false
+          caster.stuck = true
+          self.hitbox = applyParams(newEntity(),{
+            color = {1, .3, .3, .2},
+            x=caster.x+ 40*math.cos(caster.angle), y=caster.y + 40*math.sin(caster.angle),
+            angle = caster.angle, width = 80, height = 80,
+            fill = 0,
+            draw = function (self)
+              love.graphics.push()
+              love.graphics.setColor(self.color)
+              love.graphics.translate(self.x, self.y)
+              love.graphics.rotate(self.angle)
+              love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
+              love.graphics.rectangle("fill", -self.width/2, -(1-self.fill)*self.height/2, self.width*(1-self.fill), (1-self.fill)*self.height)
+              love.graphics.setColor(0, 0, 0)
+              love.graphics.rotate(-self.angle)
+              love.graphics.print(math.floor(self.fill*10)/10)
+              love.graphics.pop()
+            end
+          })
+          table.insert(entities, self.hitbox)
+        end,
+        activeUpdate = function (self, dt, caster)
+          self.activeTimer = self.activeTimer - dt
+          applyParams(self.hitbox, {
+            x=caster.x+ 40*math.cos(caster.angle), y=caster.y + 40*math.sin(caster.angle),fill = self.activeTimer / self.activationDuration
+          })
+          self.hitbox.angle = caster.angle
+          if not self:bindCheck() then self.keyReleased = true end
+          if self:bindCheck() and self.keyReleased then self:deactivate(caster) end
+        end,
+        deactivate = function (self, caster)
+          self.active = false
+          self.charges = self.charges - 1
+
+          caster.stuck = false
+          local x, y, a, w, h = self.hitbox.x, self.hitbox.y, self.hitbox.angle, self.hitbox.width/2, self.hitbox.height/2
+          local corners = {
+            {x=x + math.cos(a)*(w) - math.sin(a)*(h),y= y + math.sin(a)*(w) + math.cos(a)*(h)},
+            {x=x + math.cos(a)*(-w) - math.sin(a)*(h),y= y + math.sin(a)*(-w) + math.cos(a)*(h)},
+            {x=x + math.cos(a)*(-w) - math.sin(a)*(-h),y= y + math.sin(a)*(-w) + math.cos(a)*(-h)},
+            {x=x + math.cos(a)*(w) - math.sin(a)*(-h),y= y + math.sin(a)*(w) + math.cos(a)*(-h)},
+          }
+          for e, entity in pairs(entities) do
+            if entity.team and entity.team > 1 and entity.life and entity.life > 0 then
+              local outside = false
+              for i = 1, 4 do
+                if checkIntersect(corners[i], corners[(i%4)+1], entity, {x=x, y=y}) then
+                  outside = true
+                  break
+                end
+              end
+              if not outside then entity:hit() end
+            end
+          end
+          table.insert(particuleEffects, {x=x, y=y, color = self.hitbox.color, nudge = w/3, size = 3, timeLeft = 1})
+          self.hitbox.terminated = true
+        end,
+        bindCheck = function ()
+          return (joystick and joystick:isDown(2)) or love.keyboard.isDown("a")
+        end
+      })
     },
     --gameplay(?)
     team = 1,
@@ -141,7 +210,9 @@ function start()
       --speed, position and orientation calculations
       self.speed.x = (self.speed.x + ax*dt)*self.speedDrag
       self.speed.y = (self.speed.y + ay*dt)*self.speedDrag
-      self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
+      if math.abs(self.speed.x)>0 or math.abs(self.speed.y)>0 then
+        self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
+      end
 
       --camera zoom control
       -- variables set in "cameraSetup()" method
