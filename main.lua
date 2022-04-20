@@ -100,6 +100,12 @@ function start()
       fracasMeutrier = applyParams(newAbility(), {
         baseCooldown = 5,
         activationDuration = 3,
+        displayOnUI = function (self)
+          love.graphics.setColor(.2, .2, .2)
+          love.graphics.rectangle("fill", 0, 0, 130, 130)
+          love.graphics.setColor(1, 1, 1, .1)
+          love.graphics.rectangle("fill", 0, 0, 130, 130 * (1-self.cooldown/self.baseCooldown))
+        end,
         hitbox = nil,
         activate = function (self, caster)
           self.activeTimer = self.activationDuration
@@ -159,11 +165,75 @@ function start()
               if not outside then entity:hit() end
             end
           end
-          table.insert(particuleEffects, {x=x, y=y, color = self.hitbox.color, nudge = w/3, size = 3, timeLeft = 1})
+          self.hitbox.color[4] = 1
+          table.insert(particuleEffects, {x=x, y=y, color = self.hitbox.color, nudge = w, size = 1, timeLeft = 1})
           self.hitbox.terminated = true
         end,
         bindCheck = function ()
           return (joystick and joystick:isDown(2)) or love.keyboard.isDown("a")
+        end
+      }),
+      unbreakable = applyParams(newAbility(), {
+        baseCooldown = 5,
+        displayOnUI = function (self)
+          love.graphics.setColor(.2, .2, .2)
+          love.graphics.rectangle("fill", 0, 0, 130, 130)
+          if self.active then
+            local t = love.timer.getTime()
+            love.graphics.setColor(0, math.cos(t), math.sin(t), .9)
+            love.graphics.rectangle("fill", 0, 0, 130, 130)
+          elseif self.cooldown and self.cooldown > 0 then
+            love.graphics.setColor(1, 1, 1, .1)
+            love.graphics.rectangle("fill", 0, 0, 130, 130 * (1-self.cooldown/self.baseCooldown))
+            love.graphics.setColor(1, 1, 1)
+            love.graphics.print(math.floor(self.cooldown*10)/10, 130/2, 130/2)
+          end
+        end,
+        activationDuration = 10,
+        hitbox = nil,
+        activate = function (self, caster)
+          self.activeTimer = self.activationDuration
+          self.active = true
+          self.hitbox = applyParams(newEntity(),{
+            color = {.2, .2, 1, 1},
+            x=caster.x+ 20*math.cos(caster.angle), y=caster.y + 20*math.sin(caster.angle),
+            angle = caster.angle, width = 3, height = 40, durability = 3, team = 1,
+            draw = function (self)
+              love.graphics.push()
+              love.graphics.setColor(self.color)
+              love.graphics.translate(self.x, self.y)
+              love.graphics.rotate(self.angle)
+              love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
+              love.graphics.pop()
+            end,
+            collide = function (self, collide)
+              if collide.team <= 1 then return end
+              self.durability = self.durability - 1
+              if self.durability <= 0 then
+                table.insert(particuleEffects, {x=self.x, y=self.y, nudge=30, size=1, timeLeft=.5, color=self.color})
+                self.terminated = true
+              end
+            end
+          })
+          table.insert(entities, self.hitbox)
+        end,
+        activeUpdate = function (self, dt, caster)
+          self.activeTimer = self.activeTimer - dt
+          if self.hitbox.terminated then
+            self:deactivate(caster)
+            return
+          end
+          applyParams(self.hitbox, {
+            x=caster.x+ 40*math.cos(self.hitbox.angle), y=caster.y + 40*math.sin(self.hitbox.angle)
+          })
+        end,
+        deactivate = function (self)
+          self.active = false
+          self.charges = self.charges - 1
+          self.hitbox.terminated = true
+        end,
+        bindCheck = function ()
+          return (joystick and joystick:isDown(4)) or love.keyboard.isDown("e")
         end
       })
     },
@@ -225,6 +295,17 @@ function start()
   table.insert(entities, player)
   --use in base camera.update()
   camera.mode = {"follow", player}
+
+  addDrawFunction( function ()
+    love.graphics.origin()
+    love.graphics.translate(20, height - 150)
+    for a, ability in pairs(player.abilities) do
+      if ability.displayOnUI then
+        ability:displayOnUI()
+        love.graphics.translate(150, 0)
+      end
+    end
+  end , 8)
 
 
   --ennemy spawn
@@ -336,8 +417,8 @@ end
 
 --variables used in player update
 function cameraSetup()
-  camera.scale = 1--4
-  camera.maxScale = 1--6
+  camera.scale = 4
+  camera.maxScale = 4
   camera.minScale = 3
   camera.scaleChangeRate = 2
 end
