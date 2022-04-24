@@ -71,14 +71,17 @@ function test()
   levelDisplayInit()
   start()
 
+
   addUpdateFunction(function (dt)
-    if math.random()>.99 then
+    if collectibles < 10 and math.random()>.99 then
+      collectibles = collectibles + 1
       table.insert(entities, {
         shape = "rectangle",
         x = (math.random()-.5)*width, y = (math.random()-.5)*height,
         width = 5, height = 5, color = {.2, .8, .4},
         collide = function (self, collider)
           if collider == player then
+            collectibles = collectibles - 1
             player.life = math.min(player.maxLife, player.life + 1)
             self.terminated = true
           end
@@ -92,7 +95,7 @@ function start()
   math.randomseed(os.time())
   levelSetup()
   cameraSetup()
-
+  collectibles = 0
   player = applyParams(ableEntity(livingEntityInit(movingEntityInit())),  {
     --display
     shape = "rectangle",

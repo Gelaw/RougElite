@@ -48,6 +48,7 @@ function livingEntityInit(entity)
   local entity = entity or newEntity()
 
   entity.life = 10
+  entity.maxLife = 10
   entity.team = 0
   entity.invicibility = nil
   entity.hit = function (self, quantity)
