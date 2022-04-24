@@ -136,7 +136,21 @@ function cameraShake(intensity, duration, pattern)
   end
 end
 
-
+--return the list of points that form the hitbox of the entity in global coordinates
+function getPointsGlobalCoor(entity)
+  local cos, sin = math.cos, math.sin
+  local x, y, a = entity.x, entity.y, -entity.angle or 0
+  local w, h = (entity.w or entity.width), (entity.h or entity.height)
+  local points = {}
+  if w and h then
+    local corners = {{.5, .5},{.5, -.5}, {-.5, -.5}, {-.5, .5}}
+    for i = 1, 4 do
+      local c = corners[i]
+      table.insert(points, {x=x+c[1]*w*cos(a)+c[2]*h*sin(a), y=y-c[1]*w*sin(a)+c[2]*h*cos(a)})
+    end
+  end
+  return points
+end
 
 function init()
   love.window.setFullscreen(true)
@@ -169,23 +183,23 @@ function init()
         if entity.update then
           entity:update(dt)
         end
+        --Collision check: Warning: Collisions are not detected with one entity is within another
+        --  for each entity pair of entities, check if the segments of the hitbox intersect to determine collision
         if entity.collide then
-          local m1 = 5
-          if entity.radius then
-            m1 = entity.radius
-          elseif entity.width and entity.height then
-            m1 = math.pow(entity.width*entity.width+entity.height*entity.height, .5)
-          end
+          local points1 = getPointsGlobalCoor(entity)
           for e2 = e + 1, #entities do
             local entity2 = entities[e2]
             if entity2.collide then
-              local m2 = 5
-              if entity2.radius then
-                m2 = entity2.radius
-              elseif entity2.width and entity2.height then
-                m2 = math.pow(entity2.width*entity2.width+entity2.height*entity2.height, .5)
+              local points2 = getPointsGlobalCoor(entity2)
+              local collision = false
+              for p1 = 1, #points1 do
+                for p2 = 1, #points2 do
+                  if checkIntersect(points1[p1], points1[p1%#points1+1], points2[p2], points2[p2%#points2+1]) then
+                    collision=true
+                  end
+                end
               end
-              if math.dist(entity.x, entity.y, entity2.x, entity2.y)<m1+m2 then
+              if collision then
                 entity2:collide(entity)
                 --check in case first collide caused entity to lose his collide function
                 if entity.collide then

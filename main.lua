@@ -19,16 +19,15 @@ function start()
 
   player = applyParams(ableEntity(livingEntityInit(movingEntityInit())),  {
     --display
-    shape = nil,
+    shape = "rectangle",
     color = {.4, .6, .2},
     x=10, y=10, z = 0,
     draw = function (self)
-      love.graphics.push()
       love.graphics.translate(self.x, self.y)
       love.graphics.rotate(self.angle)
       --shadow display
       love.graphics.setColor(0, 0, 0, 0.1)
-      love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
+      love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
       --body display (flickering in case of invicibility frames)
       love.graphics.rotate(-self.angle)
       love.graphics.translate(0, -1-self.z)
@@ -37,33 +36,10 @@ function start()
       if not self.invicibility or (math.floor(self.invicibility.time*20))%2~=1 then
           -- jump calculations
         love.graphics.setColor(self.color)
+        love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
+        love.graphics.setColor(0, .5, .8, .5)
         love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
       end
-      --lifebar display
-      love.graphics.rotate(-self.angle)
-      love.graphics.translate(-15, -15)
-      love.graphics.setColor(.1, .1, .2, .3)
-      love.graphics.rectangle("fill", 3, 0, 3*10, 5)
-      love.graphics.setColor(.1, .8, .2, .7)
-      love.graphics.rectangle("fill", 3, 0, 3*self.life, 5)
-      for i = 1, self.abilities.dash.maxCharges do
-        if self.abilities.dash.charges < i then
-          love.graphics.setColor(.1, .1, .2, .3)
-        else
-          love.graphics.setColor(0, .3, .9)
-        end
-        love.graphics.circle("fill", 4+10*(i-1), 5, 3)
-        if self.abilities.dash.charges == i - 1 then
-          love.graphics.setColor(0, .3, .9)
-          love.graphics.arc("fill", 4+10*(i-1), 5, 3, -math.pi/2+ 2*math.pi*(1-self.abilities.dash.cooldown/self.abilities.dash.baseCooldown), -math.pi/2)
-        end
-      end
-      --position display
-      love.graphics.translate(8, 30)
-      love.graphics.scale(.2)
-      love.graphics.setColor(0, 0, 0)
-      love.graphics.print(math.floor(self.x) .."\t"..math.floor(self.y))
-      love.graphics.pop()
     end,
     -- actions
     abilities = {
@@ -189,6 +165,7 @@ function start()
             love.graphics.print(math.floor(self.cooldown*10)/10, 130/2, 130/2)
           end
         end,
+        distanceToCaster = 10,
         activationDuration = 10,
         hitbox = nil,
         activate = function (self, caster)
@@ -196,7 +173,7 @@ function start()
           self.active = true
           self.hitbox = applyParams(newEntity(),{
             color = {.2, .2, 1, 1},
-            x=caster.x+ 20*math.cos(caster.angle), y=caster.y + 20*math.sin(caster.angle),
+            x=caster.x+ self.distanceToCaster*math.cos(caster.angle), y=caster.y + self.distanceToCaster*math.sin(caster.angle),
             angle = caster.angle, width = 3, height = 40, durability = 3, team = 1,
             draw = function (self)
               love.graphics.push()
@@ -224,7 +201,7 @@ function start()
             return
           end
           applyParams(self.hitbox, {
-            x=caster.x+ 40*math.cos(self.hitbox.angle), y=caster.y + 40*math.sin(self.hitbox.angle)
+            x=caster.x+ self.distanceToCaster*math.cos(self.hitbox.angle), y=caster.y + self.distanceToCaster*math.sin(self.hitbox.angle)
           })
         end,
         deactivate = function (self)
@@ -293,6 +270,33 @@ function start()
       end
     end)
   table.insert(entities, player)
+  addDrawFunction(function()
+    --lifebar display
+    love.graphics.translate(player.x, player.y)
+    love.graphics.translate(-15, -15)
+    love.graphics.setColor(.1, .1, .2, .3)
+    love.graphics.rectangle("fill", 3, 0, 3*10, 5)
+    love.graphics.setColor(.1, .8, .2, .7)
+    love.graphics.rectangle("fill", 3, 0, 3*player.life, 5)
+    --dash charges display
+    for i = 1, player.abilities.dash.maxCharges do
+      if player.abilities.dash.charges < i then
+        love.graphics.setColor(.1, .1, .2, .3)
+      else
+        love.graphics.setColor(0, .3, .9)
+      end
+      love.graphics.circle("fill", 4+10*(i-1), 5, 3)
+      if player.abilities.dash.charges == i - 1 then
+        love.graphics.setColor(0, .3, .9)
+        love.graphics.arc("fill", 4+10*(i-1), 5, 3, -math.pi/2+ 2*math.pi*(1-player.abilities.dash.cooldown/player.abilities.dash.baseCooldown), -math.pi/2)
+      end
+    end
+    --position display
+    love.graphics.translate(8, 30)
+    love.graphics.scale(.2)
+    love.graphics.setColor(0, 0, 0)
+    love.graphics.print(math.floor(player.x) .."\t"..math.floor(player.y))
+  end, 8)
   --use in base camera.update()
   camera.mode = {"follow", player}
 
@@ -366,7 +370,7 @@ function start()
                 color = {0, 0, 0},
                 x=entity.x + math.cos(entity.angle)*5,
                 y=entity.y + math.sin(entity.angle)*5,
-                width=3, height=1, angle=entity.angle, speed = 300,
+                width=5, height=1, angle=entity.angle, speed = 300,
                 timer = 0,
                 update = function (self, dt)
                   self.timer = self.timer + dt
@@ -375,7 +379,11 @@ function start()
                   self.y = self.y + math.sin(self.angle)*dt*self.speed
                 end,
                 team = 2,
-                collide = function () end
+                collide = function (self, collider)
+                  if collider.team < 2 then
+                    self.terminated = true
+                  end
+                end
             }
             table.insert(entities, projectile)
             --init a cooldown timer and switch to reload task
@@ -413,6 +421,26 @@ function start()
       end)
     table.insert(entities, ennemy)
   end
+  addDrawFunction(function ()
+    if showHitboxes then
+      local c = 0
+      for e, entity in pairs(entities) do
+        local points = getPointsGlobalCoor(entity)
+        local pts = {}
+        for p, point in pairs(points) do
+        table.insert(pts, point.x)
+        table.insert(pts, point.y)
+        end
+        if #pts>6 then
+          c=c+1
+          love.graphics.setColor(1, 1, 1, .2)
+          love.graphics.polygon("fill", pts)
+          love.graphics.setColor(1, 1, 1)
+          love.graphics.polygon("line", pts)
+        end
+      end
+    end
+  end, 9)
 end
 
 --variables used in player update
@@ -462,6 +490,13 @@ end
 function love.keypressed(key, scancode, isrepeat)
   if key == "escape" then
     love.event.quit()
+  end
+  if key == "r" then
+    entities = {}
+    start()
+  end
+  if key == "h" then
+    showHitboxes = not showHitboxes
   end
   if player.life <= 0 then
     entities = {}
