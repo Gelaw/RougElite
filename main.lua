@@ -89,6 +89,40 @@ function test()
       })
     end
   end)
+
+  table.insert(entities, {
+    x = 0, y=0, radius=100,angle=0, color = {.7, .7, 0, 0.2}, shear = {x=0, y=0},
+    polygon = { 0,0,  -2,-1,  -3,-3,  -2,-5,  0,-10,  2,-5,  3,-3,  2,-1,},
+    draw=function (self)
+      love.graphics.translate(self.x, self.y)
+      love.graphics.setColor(.8, .8, .8, .8)
+      love.graphics.rectangle("fill", -2, 0, 4, 5)
+      love.graphics.setColor(.5, .5, .5, .5)
+      love.graphics.rectangle("fill", -1, 0, 2, -2)
+      love.graphics.shear(self.shear.x, self.shear.y)
+      love.graphics.polygon("line",self.polygon)
+      love.graphics.setColor(self.color)
+      love.graphics.polygon("fill",self.polygon)
+      love.graphics.push()
+      love.graphics.setColor(self.color)
+      love.graphics.translate(0, -3)
+      love.graphics.scale(.5)
+      love.graphics.polygon("fill", self.polygon)
+      love.graphics.translate(0, 4)
+      love.graphics.setColor({1, 0, .5, .3})
+      love.graphics.polygon("fill", self.polygon)
+      love.graphics.pop()
+      love.graphics.rotate(self.angle)
+      love.graphics.setColor(self.color)
+      love.graphics.circle("fill", 0, 0, self.radius)
+    end,
+    update = function (self, dt)
+      self.color[1], self.color[2], self.color[4] = self.color[1]+(math.random()-.5)*.01, self.color[2]+(math.random()-.5)*.01, self.color[4]+(math.random()-.5)*.01
+      self.radius = self.radius +(math.random()-.49)*.1
+      self.angle = self.angle + math.random()*.01
+      self.shear = {x=self.shear.x+.01*(math.random()-.5), y=self.shear.y+.01*(math.random()-.5)}
+    end
+  })
 end
 
 function start()
@@ -263,7 +297,7 @@ function start()
               love.graphics.pop()
             end,
             collide = function (self, collide)
-              if collide.team <= 1 then return end
+              if collide.team and collide.team <= 1 then return end
               self.durability = self.durability - 1
               if self.durability <= 0 then
                 table.insert(particuleEffects, {x=self.x, y=self.y, nudge=30, size=1, timeLeft=.5, color=self.color})
