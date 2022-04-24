@@ -6,6 +6,67 @@ function test()
   local joysticks = love.joystick.getJoysticks()
   if joysticks then joystick = joysticks[1] end
 
+  --player hud
+  addDrawFunction(function()
+    --lifebar display
+    love.graphics.translate(player.x, player.y)
+    love.graphics.translate(-15, -15)
+    love.graphics.setColor(.1, .1, .2, .3)
+    love.graphics.rectangle("fill", 3, 0, 3*10, 5)
+    love.graphics.setColor(.1, .8, .2, .7)
+    love.graphics.rectangle("fill", 3, 0, 3*player.life, 5)
+    --dash charges display
+    for i = 1, player.abilities.dash.maxCharges do
+      if player.abilities.dash.charges < i then
+        love.graphics.setColor(.1, .1, .2, .3)
+      else
+        love.graphics.setColor(0, .3, .9)
+      end
+      love.graphics.circle("fill", 4+10*(i-1), 5, 3)
+      if player.abilities.dash.charges == i - 1 then
+        love.graphics.setColor(0, .3, .9)
+        love.graphics.arc("fill", 4+10*(i-1), 5, 3, -math.pi/2+ 2*math.pi*(1-player.abilities.dash.cooldown/player.abilities.dash.baseCooldown), -math.pi/2)
+      end
+    end
+    --position display
+    love.graphics.translate(8, 30)
+    love.graphics.scale(.2)
+    love.graphics.setColor(0, 0, 0)
+    love.graphics.print(math.floor(player.x) .."\t"..math.floor(player.y))
+  end, 8)
+  --abilities hud
+  addDrawFunction( function ()
+    love.graphics.origin()
+    love.graphics.translate(20, height - 150)
+    for a, ability in pairs(player.abilities) do
+      if ability.displayOnUI then
+        ability:displayOnUI()
+        love.graphics.translate(150, 0)
+      end
+    end
+  end , 8)
+  --hitbox debug display
+  addDrawFunction(function ()
+    if showHitboxes then
+      local c = 0
+      for e, entity in pairs(entities) do
+        local points = getPointsGlobalCoor(entity)
+        local pts = {}
+        for p, point in pairs(points) do
+          table.insert(pts, point.x)
+          table.insert(pts, point.y)
+        end
+        if #pts>6 then
+          c=c+1
+          love.graphics.setColor(1, 1, 1, .2)
+          love.graphics.polygon("fill", pts)
+          love.graphics.setColor(1, 1, 1)
+          love.graphics.polygon("line", pts)
+        end
+      end
+    end
+  end, 9)
+
   gridSetup()
   levelDisplayInit()
   start()
@@ -270,46 +331,10 @@ function start()
       end
     end)
   table.insert(entities, player)
-  addDrawFunction(function()
-    --lifebar display
-    love.graphics.translate(player.x, player.y)
-    love.graphics.translate(-15, -15)
-    love.graphics.setColor(.1, .1, .2, .3)
-    love.graphics.rectangle("fill", 3, 0, 3*10, 5)
-    love.graphics.setColor(.1, .8, .2, .7)
-    love.graphics.rectangle("fill", 3, 0, 3*player.life, 5)
-    --dash charges display
-    for i = 1, player.abilities.dash.maxCharges do
-      if player.abilities.dash.charges < i then
-        love.graphics.setColor(.1, .1, .2, .3)
-      else
-        love.graphics.setColor(0, .3, .9)
-      end
-      love.graphics.circle("fill", 4+10*(i-1), 5, 3)
-      if player.abilities.dash.charges == i - 1 then
-        love.graphics.setColor(0, .3, .9)
-        love.graphics.arc("fill", 4+10*(i-1), 5, 3, -math.pi/2+ 2*math.pi*(1-player.abilities.dash.cooldown/player.abilities.dash.baseCooldown), -math.pi/2)
-      end
-    end
-    --position display
-    love.graphics.translate(8, 30)
-    love.graphics.scale(.2)
-    love.graphics.setColor(0, 0, 0)
-    love.graphics.print(math.floor(player.x) .."\t"..math.floor(player.y))
-  end, 8)
+
   --use in base camera.update()
   camera.mode = {"follow", player}
 
-  addDrawFunction( function ()
-    love.graphics.origin()
-    love.graphics.translate(20, height - 150)
-    for a, ability in pairs(player.abilities) do
-      if ability.displayOnUI then
-        ability:displayOnUI()
-        love.graphics.translate(150, 0)
-      end
-    end
-  end , 8)
 
 
   --ennemy spawn
@@ -421,26 +446,7 @@ function start()
       end)
     table.insert(entities, ennemy)
   end
-  addDrawFunction(function ()
-    if showHitboxes then
-      local c = 0
-      for e, entity in pairs(entities) do
-        local points = getPointsGlobalCoor(entity)
-        local pts = {}
-        for p, point in pairs(points) do
-        table.insert(pts, point.x)
-        table.insert(pts, point.y)
-        end
-        if #pts>6 then
-          c=c+1
-          love.graphics.setColor(1, 1, 1, .2)
-          love.graphics.polygon("fill", pts)
-          love.graphics.setColor(1, 1, 1)
-          love.graphics.polygon("line", pts)
-        end
-      end
-    end
-  end, 9)
+
 end
 
 --variables used in player update
