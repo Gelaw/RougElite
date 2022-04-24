@@ -22,27 +22,25 @@ function movingEntityInit(entity)
   entity.speedDrag= 0.9
   entity.maxAcceleration = 3000
   entity.stuck = false
-  table.insert(entity.updates,
-    function (self, dt)
-      if entity.stuck then
-        self.speed.x = 0
-        self.speed.y = 0
-        return
-      end
-      if self.maxSpeed then
-        self.speed.x = math.max(-self.maxSpeed, math.min(self.speed.x, self.maxSpeed))
-        self.speed.y = math.max(-self.maxSpeed, math.min(self.speed.y, self.maxSpeed))
-      end
-      local newPosition = {x = self.x + self.speed.x * dt, y= self.y + self.speed.y * dt}
-      if wallCollision(self, newPosition) and not self.ignoreWalls then
-        self.speed.x = 0
-        self.speed.y = 0
-      else
-        self.x = newPosition.x
-        self.y = newPosition.y
-      end
+  table.insert(entity.updates, function (self, dt)
+    if entity.stuck then
+      self.speed.x = 0
+      self.speed.y = 0
+      return
     end
-  )
+    if self.maxSpeed then
+      self.speed.x = math.max(-self.maxSpeed, math.min(self.speed.x, self.maxSpeed))
+      self.speed.y = math.max(-self.maxSpeed, math.min(self.speed.y, self.maxSpeed))
+    end
+    local newPosition = {x = self.x + self.speed.x * dt, y= self.y + self.speed.y * dt}
+    if wallCollision(self, newPosition) and not self.ignoreWalls then
+      self.speed.x = 0
+      self.speed.y = 0
+    else
+      self.x = newPosition.x
+      self.y = newPosition.y
+    end
+  end)
   return entity
 end
 
@@ -65,24 +63,24 @@ function livingEntityInit(entity)
     --collision dismissed in case of invicibility or jump
     if self.intangible then return end
     --collision dismissed if both are in the same team (default team value 0, player and allies 1, ennemies 2 or more)
-    if self.team == collider.team then return end
-    --life deduction
-    self:hit()
+    if self.team and collider.team and self.team ~= collider.team then
+      --life deduction
+      self:hit()
+    end
   end
-  table.insert(entity.updates,
-    function (self, dt)
-      -- invicibility
-      -- simple timer, with collide and display effects
-      if self.invicibility then
-        --timer countdown
-        self.invicibility.time = self.invicibility.time - dt
-        if self.invicibility.time <= 0 then
-          --invicibility end
-          self.invicibility = nil
-          self.intangible = false
-        end
+  table.insert(entity.updates, function (self, dt)
+    -- invicibility
+    -- simple timer, with collide and display effects
+    if self.invicibility then
+      --timer countdown
+      self.invicibility.time = self.invicibility.time - dt
+      if self.invicibility.time <= 0 then
+        --invicibility end
+        self.invicibility = nil
+        self.intangible = false
       end
-    end)
+    end
+  end)
   return entity
 end
 
@@ -125,29 +123,27 @@ function ableEntity(entity)
   local entity = entity or newEntity()
 
   entity.abilities = {}
-  table.insert(entity.updates,
-    function (self, dt)
-      for a, ability in pairs(self.abilities) do
-        ability:update(dt, entity)
-        if ability.cooldown > 0 then
-          ability:cooldownUpdate(dt, entity)
-          if ability.cooldown <= 0 then
-            ability:onCooldownEnd(entity)
-          end
-        elseif ability.charges < ability.maxCharges then
-          ability:onCooldownStart()
+  table.insert(entity.updates, function (self, dt)
+    for a, ability in pairs(self.abilities) do
+      ability:update(dt, entity)
+      if ability.cooldown > 0 then
+        ability:cooldownUpdate(dt, entity)
+        if ability.cooldown <= 0 then
+          ability:onCooldownEnd(entity)
         end
-        if ability.active then
-          ability:activeUpdate(dt, entity)
-          if ability.activeTimer <= 0 then
-            ability:deactivate(entity)
-          end
-        elseif ability.charges > 0 and ability:bindCheck() and ability:castConditions(entity) ~= nil then
-          ability:activate(entity)
+      elseif ability.charges < ability.maxCharges then
+        ability:onCooldownStart()
+      end
+      if ability.active then
+        ability:activeUpdate(dt, entity)
+        if ability.activeTimer <= 0 then
+          ability:deactivate(entity)
         end
+      elseif ability.charges > 0 and ability:bindCheck() and ability:castConditions(entity) ~= nil then
+        ability:activate(entity)
       end
     end
-  )
+  end)
   return entity
 end
 

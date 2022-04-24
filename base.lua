@@ -2,7 +2,7 @@
 
 draws = {}
 for i = 1, 9 do
-    draws[i] = {}
+  draws[i] = {}
 end
 
 function addDrawFunction(draw, layer)
@@ -27,9 +27,9 @@ function basicEntityDraw(entity)
   love.graphics.translate(entity.x, entity.y)
   if entity.angle then love.graphics.rotate(entity.angle) end
   if entity.shape == "rectangle" then
-      love.graphics.rectangle("fill", -entity.width/2, -entity.height/2, entity.width, entity.height)
+    love.graphics.rectangle("fill", -entity.width/2, -entity.height/2, entity.width, entity.height)
   elseif entity.shape == "circle" then
-      love.graphics.circle("fill", 0, 0, entity.radius)
+    love.graphics.circle("fill", 0, 0, entity.radius)
   end
 end
 
@@ -39,8 +39,8 @@ function love.draw()
   for l, layer in pairs(draws) do
     for d, draw in pairs(layer) do
       if type(draw) ~= "function" then
-        print(draw, " is not a function!")
         love.event.quit()
+        -- print(draw, " is not a function!")
       end
       love.graphics.push()
       draw()
@@ -59,7 +59,7 @@ function love.update(dt)
   if gameover then return end
   for u, update in pairs(updates) do
     if type(update) ~= "function" then
-      print(update, " is not a function!")
+      -- print(update, " is not a function!")
       love.event.quit()
     end
     update(dt)
@@ -78,7 +78,8 @@ function getBindOf(action)
   return bindings[action]
 end
 
-camera = {x = 0, y = 0, scale = 1, angle = 0, mode = nil,
+camera = {
+  x = 0, y = 0, scale = 1, angle = 0, mode = nil,
   shaker = { steps = {}, n = 1, stepTimer = 0, shakeTimer = 0},
   apply = function (self)
     local shaker = self.shaker
@@ -139,7 +140,7 @@ end
 --return the list of points that form the hitbox of the entity in global coordinates
 function getPointsGlobalCoor(entity)
   local cos, sin = math.cos, math.sin
-  local x, y, a = entity.x, entity.y, -entity.angle or 0
+  local x, y, a = entity.x, entity.y, -(entity.angle or 0)
   local w, h = (entity.w or entity.width), (entity.h or entity.height)
   local points = {}
   if w and h then
@@ -159,92 +160,85 @@ function init()
   love.graphics.setFont(love.graphics.newFont(11))
   love.graphics.setBackgroundColor(.4, .4, .4)
   entities = {}
-  addDrawFunction(
-    function ()
-      for e, entity in pairs(entities) do
-        if math.abs(entity.x  - camera.x) <= .75*(width)/camera.scale
-        and math.abs(entity.y - camera.y) <= .75*(height)/camera.scale then
-          love.graphics.push()
-          if entity.draw then
-            entity:draw()
-          else
-            basicEntityDraw(entity)
-          end
-          love.graphics.pop()
+  addDrawFunction(function ()
+    for e, entity in pairs(entities) do
+      if math.abs(entity.x  - camera.x) <= .75*(width)/camera.scale
+      and math.abs(entity.y - camera.y) <= .75*(height)/camera.scale then
+        love.graphics.push()
+        if entity.draw then
+          entity:draw()
+        else
+          basicEntityDraw(entity)
         end
+        love.graphics.pop()
       end
-    end, 5
-  )
+    end
+  end, 5)
 
-  addUpdateFunction(
-    function (dt)
-      for e = #entities, 1, -1 do
-        local entity = entities[e]
-        if entity.update then
-          entity:update(dt)
-        end
-        --Collision check: Warning: Collisions are not detected with one entity is within another
-        --  for each entity pair of entities, check if the segments of the hitbox intersect to determine collision
-        if entity.collide then
-          local points1 = getPointsGlobalCoor(entity)
-          for e2 = e + 1, #entities do
-            local entity2 = entities[e2]
-            if entity2.collide then
-              local points2 = getPointsGlobalCoor(entity2)
-              local collision = false
-              for p1 = 1, #points1 do
-                for p2 = 1, #points2 do
-                  if checkIntersect(points1[p1], points1[p1%#points1+1], points2[p2], points2[p2%#points2+1]) then
-                    collision=true
-                  end
+  addUpdateFunction(function (dt)
+    for e = #entities, 1, -1 do
+      local entity = entities[e]
+      if entity.update then
+        entity:update(dt)
+      end
+      --Collision check: Warning: Collisions are not detected with one entity is within another
+      --  for each entity pair of entities, check if the segments of the hitbox intersect to determine collision
+      if entity.collide then
+        local points1 = getPointsGlobalCoor(entity)
+        for e2 = e + 1, #entities do
+          local entity2 = entities[e2]
+          if entity2.collide then
+            local points2 = getPointsGlobalCoor(entity2)
+            local collision = false
+            for p1 = 1, #points1 do
+              for p2 = 1, #points2 do
+                if checkIntersect(points1[p1], points1[p1%#points1+1], points2[p2], points2[p2%#points2+1]) then
+                  collision=true
                 end
               end
-              if collision then
-                entity2:collide(entity)
-                --check in case first collide caused entity to lose his collide function
-                if entity.collide then
-                  entity:collide(entity2)
-                end
+            end
+            if collision then
+              entity2:collide(entity)
+              --check in case first collide caused entity to lose his collide function
+              if entity.collide then
+                entity:collide(entity2)
               end
             end
           end
         end
-        if entity.terminated == true then
-          table.remove(entities, e)
-        end
+      end
+      if entity.terminated == true then
+        table.remove(entities, e)
       end
     end
-  )
+  end)
 
   particuleEffects = {}
 
-  addDrawFunction(
-    function ()
-      for pe, particuleEffect in pairs(particuleEffects) do
-        if math.abs(particuleEffect.x  - camera.x) <= .75*(width)/camera.scale
-        and math.abs(particuleEffect.y - camera.y) <= .75*(height)/camera.scale then
-          love.graphics.push()
-          if particuleEffect.draw then
-            particuleEffect:draw()
-          else
-            drawParticuleEffect(particuleEffect)
-          end
-          love.graphics.pop()
+  addDrawFunction(function ()
+    for pe, particuleEffect in pairs(particuleEffects) do
+      if math.abs(particuleEffect.x  - camera.x) <= .75*(width)/camera.scale
+      and math.abs(particuleEffect.y - camera.y) <= .75*(height)/camera.scale then
+        love.graphics.push()
+        if particuleEffect.draw then
+          particuleEffect:draw()
+        else
+          drawParticuleEffect(particuleEffect)
         end
-      end
-    end, 6
-  )
-  addUpdateFunction(
-    function (dt)
-      for pe = #particuleEffects, 1, -1 do
-        particuleEffect = particuleEffects[pe]
-        particuleEffect.timeLeft = particuleEffect.timeLeft - dt
-        if particuleEffect.timeLeft <= 0 then
-          table.remove(particuleEffects, pe)
-        end
+        love.graphics.pop()
       end
     end
-  )
+  end, 6)
+
+  addUpdateFunction(function (dt)
+    for pe = #particuleEffects, 1, -1 do
+      particuleEffect = particuleEffects[pe]
+      particuleEffect.timeLeft = particuleEffect.timeLeft - dt
+      if particuleEffect.timeLeft <= 0 then
+        table.remove(particuleEffects, pe)
+      end
+    end
+  end)
 end
 
 --necessary to prevent OS bluescreen in case of error
@@ -275,9 +269,9 @@ end
 
 -- Averages an arbitrary number of angles (in radians).
 function math.averageAngles(...)
-	local x,y = 0,0
-	for i=1,select('#',...) do local a= select(i,...) x, y = x+math.cos(a), y+math.sin(a) end
-	return math.atan2(y, x)
+  local x,y = 0,0
+  for i=1,select('#',...) do local a= select(i,...) x, y = x+math.cos(a), y+math.sin(a) end
+  return math.atan2(y, x)
 end
 
 
@@ -329,24 +323,24 @@ function math.prandom(min, max) return love.math.random() * (max - min) + min en
 
 -- Checks if two line segments intersect. Line segments are given in form of ({x,y},{x,y}, {x,y},{x,y}).
 function checkIntersect(l1p1, l1p2, l2p1, l2p2)
-	local function checkDir(pt1, pt2, pt3) return math.sign(((pt2.x-pt1.x)*(pt3.y-pt1.y)) - ((pt3.x-pt1.x)*(pt2.y-pt1.y))) end
-	return (checkDir(l1p1,l1p2,l2p1) ~= checkDir(l1p1,l1p2,l2p2)) and (checkDir(l2p1,l2p2,l1p1) ~= checkDir(l2p1,l2p2,l1p2))
+  local function checkDir(pt1, pt2, pt3) return math.sign(((pt2.x-pt1.x)*(pt3.y-pt1.y)) - ((pt3.x-pt1.x)*(pt2.y-pt1.y))) end
+  return (checkDir(l1p1,l1p2,l2p1) ~= checkDir(l1p1,l1p2,l2p2)) and (checkDir(l2p1,l2p2,l1p1) ~= checkDir(l2p1,l2p2,l1p2))
 end
 
 -- Checks if two lines intersect (or line segments if seg is true)
 -- Lines are given as four numbers (two coordinates)
 function findIntersect(l1p1x,l1p1y, l1p2x,l1p2y, l2p1x,l2p1y, l2p2x,l2p2y, seg1, seg2)
-	local a1,b1,a2,b2 = l1p2y-l1p1y, l1p1x-l1p2x, l2p2y-l2p1y, l2p1x-l2p2x
-	local c1,c2 = a1*l1p1x+b1*l1p1y, a2*l2p1x+b2*l2p1y
-	local det,x,y = a1*b2 - a2*b1
-	if det==0 then return false, "The lines are parallel." end
-	x,y = (b2*c1-b1*c2)/det, (a1*c2-a2*c1)/det
-	if seg1 or seg2 then
-		local min,max = math.min, math.max
-		if seg1 and not (min(l1p1x,l1p2x) <= x and x <= max(l1p1x,l1p2x) and min(l1p1y,l1p2y) <= y and y <= max(l1p1y,l1p2y)) or
-		   seg2 and not (min(l2p1x,l2p2x) <= x and x <= max(l2p1x,l2p2x) and min(l2p1y,l2p2y) <= y and y <= max(l2p1y,l2p2y)) then
-			return false, "The lines don't intersect."
-		end
-	end
-	return x,y
+  local a1,b1,a2,b2 = l1p2y-l1p1y, l1p1x-l1p2x, l2p2y-l2p1y, l2p1x-l2p2x
+  local c1,c2 = a1*l1p1x+b1*l1p1y, a2*l2p1x+b2*l2p1y
+  local det,x,y = a1*b2 - a2*b1
+  if det==0 then return false, "The lines are parallel." end
+  x,y = (b2*c1-b1*c2)/det, (a1*c2-a2*c1)/det
+  if seg1 or seg2 then
+    local min,max = math.min, math.max
+    if seg1 and not (min(l1p1x,l1p2x) <= x and x <= max(l1p1x,l1p2x) and min(l1p1y,l1p2y) <= y and y <= max(l1p1y,l1p2y)) or
+    seg2 and not (min(l2p1x,l2p2x) <= x and x <= max(l2p1x,l2p2x) and min(l2p1y,l2p2y) <= y and y <= max(l2p1y,l2p2y)) then
+      return false, "The lines don't intersect."
+    end
+  end
+  return x,y
 end

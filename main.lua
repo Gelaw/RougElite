@@ -71,6 +71,21 @@ function test()
   levelDisplayInit()
   start()
 
+  addUpdateFunction(function (dt)
+    if math.random()>.99 then
+      table.insert(entities, {
+        shape = "rectangle",
+        x = (math.random()-.5)*width, y = (math.random()-.5)*height,
+        width = 5, height = 5, color = {.2, .8, .4},
+        collide = function (self, collider)
+          if collider == player then
+            player.life = math.min(player.maxLife, player.life + 1)
+            self.terminated = true
+          end
+        end
+      })
+    end
+  end)
 end
 
 function start()
@@ -405,7 +420,7 @@ function start()
                 end,
                 team = 2,
                 collide = function (self, collider)
-                  if collider.team < 2 then
+                  if collider.team and collider.team < 2 then
                     self.terminated = true
                   end
                 end
