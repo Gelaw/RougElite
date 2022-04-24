@@ -1,0 +1,1 @@
+--Editable script run at game start (and restart)
