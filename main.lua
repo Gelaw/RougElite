@@ -447,6 +447,7 @@ function start()
     table.insert(entities, ennemy)
   end
 
+  safeLoadAndRun("editableScript.lua")
 end
 
 --variables used in player update
