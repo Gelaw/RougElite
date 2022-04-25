@@ -10,11 +10,16 @@ function addDrawFunction(draw, layer)
   table.insert(draws[layer], draw)
 end
 
-function drawParticuleEffect(pe)
+function basicParticuleEffectDraw(pe)
   love.graphics.setColor(pe.color)
-  for i = 1, 4 do
-    local x, y = pe.x+math.random(-pe.nudge/2,pe.nudge/2), pe.y+math.random(-pe.nudge/2,pe.nudge/2)
-    love.graphics.polygon("fill", {x+pe.size, y, x, y+pe.size, x-pe.size, y, x, y-pe.size})
+  love.graphics.translate(pe.x, pe.y)
+  local t = love.timer.getTime()
+  for i = 1, 8 do
+    love.graphics.push()
+    love.graphics.translate(math.cos(60*t+10*i)*pe.nudge/2, math.sin(40*t+60*i)*pe.nudge/2)
+    love.graphics.rotate(math.sin(t + 69*i))
+    love.graphics.polygon("fill", {pe.size, 0, 0, pe.size, -pe.size, 0, 0, -pe.size})
+    love.graphics.pop()
   end
 end
 
@@ -223,7 +228,7 @@ function init()
         if particuleEffect.draw then
           particuleEffect:draw()
         else
-          drawParticuleEffect(particuleEffect)
+          basicParticuleEffectDraw(particuleEffect)
         end
         love.graphics.pop()
       end

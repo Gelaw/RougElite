@@ -51,10 +51,11 @@ function livingEntityInit(entity)
   entity.maxLife = 10
   entity.team = 0
   entity.invicibility = nil
+  entity.invicibilityTimeAfterHit = .5
   entity.hit = function (self, quantity)
     local quantity = quantity or 1
     self.life = self.life - quantity
-    self.invicibility = {time = .5}
+    self.invicibility = {time = self.invicibilityTimeAfterHit}
     self.intangible = true
     if self.onHit then self:onHit() end
     --death check
@@ -65,8 +66,10 @@ function livingEntityInit(entity)
     if self.intangible then return end
     --collision dismissed if both are in the same team (default team value 0, player and allies 1, ennemies 2 or more)
     if self.team and collider.team and self.team ~= collider.team then
-      --life deduction
-      self:hit()
+      if collider.contactDamage then
+        --life deduction
+        self:hit(collider.contactDamage)
+      end
     end
   end
   table.insert(entity.updates, function (self, dt)

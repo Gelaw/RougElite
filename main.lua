@@ -83,6 +83,22 @@ function test()
           if collider == player then
             collectibles = collectibles - 1
             player.life = math.min(player.maxLife, player.life + 1)
+            table.insert(particuleEffects, {
+              x=self.x, y=self.y, color = {1, .2, .2}, nudge = 5, size = 3, timeLeft = 1.5,
+              pluslygon = {-1,-1,  -1,-3,  1,-3,  1,-1,  3,-1,  3,1,  1,1,  1,3,  -1,3,  -1,1,  -3,1,  -3,-1},
+              draw = function (self)
+                love.graphics.translate(self.x, self.y)
+                love.graphics.scale(.5)
+                love.graphics.setColor(self.color)
+                local t = love.timer.getTime() % 3600
+                for i = 1, 4 do
+                  love.graphics.push()
+                  love.graphics.translate(math.cos(10*t+i*39)*5, math.cos(12*t+i*22)*5)
+                  love.graphics.polygon("fill", self.pluslygon)
+                  love.graphics.pop()
+                end
+              end
+            })
             self.terminated = true
           end
         end
@@ -90,6 +106,7 @@ function test()
     end
   end)
 
+  --torch/candle (cosmetic only)
   table.insert(entities, {
     x = 0, y=0, radius=100,angle=0, color = {.7, .7, 0, 0.2}, shear = {x=0, y=0},
     polygon = { 0,0,  -2,-1,  -3,-3,  -2,-5,  0,-10,  2,-5,  3,-3,  2,-1,},
@@ -255,7 +272,7 @@ function start()
             end
           end
           self.hitbox.color[4] = 1
-          table.insert(particuleEffects, {x=x, y=y, color = self.hitbox.color, nudge = w, size = 1, timeLeft = 1})
+          table.insert(particuleEffects, {x=x, y=y, color = self.hitbox.color, nudge = w, size = 2, timeLeft = 1})
           self.hitbox.terminated = true
         end,
         bindCheck = function ()
@@ -296,8 +313,9 @@ function start()
               love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
               love.graphics.pop()
             end,
-            collide = function (self, collide)
-              if collide.team and collide.team <= 1 then return end
+            collide = function (self, collider)
+              if collider.team and collider.team <= 1 then return end
+              if not collider.contactDamage then return end
               self.durability = self.durability - 1
               if self.durability <= 0 then
                 table.insert(particuleEffects, {x=self.x, y=self.y, nudge=30, size=1, timeLeft=.5, color=self.color})
@@ -397,6 +415,7 @@ function start()
         color = (type == 1 and  {.1, .2, .9} or {.9, .3, .1}),
         ignoreWalls = type == 1,
         x=math.random(-width/2, width/2), y=math.random(-height/2, height/2),
+        height = (type == 1 and 5 or 10), contactDamage = (type==1 and nil or 1),
         draw = function (self)
           --function defined in base for quick display
           basicEntityDraw(self)
@@ -455,6 +474,7 @@ function start()
                   self.x = self.x + math.cos(self.angle)*dt*self.speed
                   self.y = self.y + math.sin(self.angle)*dt*self.speed
                 end,
+                contactDamage = 2,
                 team = 2,
                 collide = function (self, collider)
                   if collider.team and collider.team < 2 then
@@ -487,7 +507,7 @@ function start()
           self.update = nil
           self.IA.task = "dead"
           self.collide = nil
-          self.color = {.8, .3, .3}
+          self.color = {.3, .3, .3}
           table.insert(particuleEffects, {x=self.x, y=self.y, color = {.6, .2, .2}, nudge = 5, size = 3, timeLeft = 1})
         end
       }

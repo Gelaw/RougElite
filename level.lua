@@ -53,7 +53,7 @@ function splitRoom(p1, p2, horizontal)
       splitRoom({x=mp.x, y=p1.y}, p2, true)
     end
   else
-    local roomcolor = {math.random()*.5, math.random()*.5, math.random()*.5, .2}
+    local roomcolor = {math.random()*.5+.1, math.random()*.5+.1, math.random()*.5+.1, .3}
     table.insert(rooms, {p1=p1, p2=p2, roomcolor=roomcolor})
   end
 end
