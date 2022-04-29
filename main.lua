@@ -154,11 +154,8 @@ function start()
   collectibles = 0
   player = applyParams(playerInit(ableEntityInit(livingEntityInit(movingEntityInit()))),  {
     --display
-    shape = "rectangle",
     color = {.4, .6, .2},
     x=10, y=10,
-
-    -- actions
     abilities = {
       dash = applyParams(newAbility(), {
         baseCooldown = 1,
@@ -171,8 +168,13 @@ function start()
         end,
         activeUpdate = function (self, dt, caster)
           self.activeTimer = self.activeTimer - dt
-          caster.x = caster.x + math.cos(self.angle)*200 * dt
-          caster.y = caster.y + math.sin(self.angle)*200 * dt
+          local newPosition = {x = caster.x + math.cos(self.angle)*200 * dt, y= caster.y + math.sin(self.angle)*200 * dt}
+          if wallCollision(caster, newPosition) and not self.ignoreWalls then
+            self:deactivate(caster)
+          else
+            caster.x = newPosition.x
+            caster.y = newPosition.y
+          end
         end,
         bindCheck = function ()
           return (joystick and joystick:isDown(6)) or love.keyboard.isDown("lshift")
@@ -247,7 +249,7 @@ function start()
             {x=x + math.cos(a)*(w) - math.sin(a)*(-h),y= y + math.sin(a)*(w) + math.cos(a)*(-h)},
           }
           for e, entity in pairs(entities) do
-            if entity.team and entity.team > 1 and entity.life and entity.life > 0 then
+            if entity.team and entity.team ~= caster.team and entity.life and entity.life > 0 then
               local outside = false
               for i = 1, 4 do
                 if checkIntersect(corners[i], corners[(i%4)+1], entity, {x=x, y=y}) then
@@ -330,10 +332,60 @@ function start()
         bindCheck = function ()
           return (joystick and joystick:isDown(4)) or love.keyboard.isDown("e")
         end
+      }),
+      absoluteZero = applyParams(newAbility(), {
+        baseCooldown = 30,
+        displayOnUI = function (self)
+          love.graphics.setColor(.2, .2, .2)
+          love.graphics.rectangle("fill", 0, 0, 130, 130)
+          love.graphics.setColor(1, 1, 1, .1)
+          love.graphics.rectangle("fill", 0, 0, 130, 130 * (1-self.cooldown/self.baseCooldown))
+        end,
+        activationDuration = 10,
+        hitbox = nil,
+        activate = function (self, caster)
+          self.activeTimer = self.activationDuration
+          self.active = true
+          self.keyReleased = false
+          caster.stuck = true
+          self.hitbox = applyParams(newEntity(),{
+            color = {.5, .5, 1, .1}, radius = 70,
+            x=caster.x, y=caster.y, fill = self.activeTimer / self.activationDuration,
+            draw = function (self)
+              love.graphics.push()
+              love.graphics.setColor(self.color)
+              love.graphics.translate(self.x, self.y)
+              love.graphics.circle("fill", 0, 0, self.radius)
+              love.graphics.circle("fill", 0, 0, self.radius*self.fill)
+              love.graphics.pop()
+            end,
+          })
+          table.insert(entities, self.hitbox)
+        end,
+        activeUpdate = function (self, dt, caster)
+          self.activeTimer = self.activeTimer - dt
+          self.hitbox.fill = self.activeTimer / self.activationDuration
+          if not self:bindCheck() then self.keyReleased = true end
+          if self:bindCheck() and self.keyReleased then self:deactivate(caster) end
+        end,
+        deactivate = function (self, caster)
+          self.active = false
+          self.charges = self.charges - 1
+          caster.stuck = false
+          for e, entity in pairs(entities) do
+            if entity.team and entity.team ~= caster.team and entity.life and entity.life > 0 then
+              if math.dist(self.hitbox.x, self.hitbox.y, entity.x, entity.y) <= self.hitbox.radius then
+                entity:hit()
+              end
+            end
+          end
+          self.hitbox.terminated = true
+        end,
+        bindCheck = function ()
+          return (joystick and joystick:isDown(8)) or love.keyboard.isDown("r")
+        end
       })
     },
-    --gameplay(?)
-
   })
 
   table.insert(entities, player)
@@ -361,7 +413,7 @@ function start()
           love.graphics.scale(2/camera.scale)
           love.graphics.print(self.IA.task)
         end,
-         maxAcceleration = math.random(1200, 1500)*type,
+        maxAcceleration = math.random(1200, 1500)*type,
         maxSpeed = 100,
         abilities = {
           shoot = applyParams(newAbility(), {
@@ -375,7 +427,7 @@ function start()
             activate = function (self, caster)
 
               --spawn projectile entity
-              projectile = {
+              local projectile = {
                   shape = "rectangle",
                   color = {0, 0, 0},
                   x=caster.x + math.cos(caster.angle)*5,
@@ -415,8 +467,7 @@ function start()
             --turn toward player
             entity.angle = -math.atan2(entity.x - player.x, entity.y - player.y)-math.rad(90)
             --math stuff for movement
-            entity.speed.x = (entity.speed.x + entity.maxAcceleration*math.cos(entity.angle)*dt)*entity.speedDrag
-            entity.speed.y = (entity.speed.y + entity.maxAcceleration*math.sin(entity.angle)*dt)*entity.speedDrag
+            entity.acceleration = {x=entity.maxAcceleration*math.cos(entity.angle), y=entity.maxAcceleration*math.sin(entity.angle)}
 
             --check if player is close
             if (math.abs(entity.x - player.x) < self.shootDistance and math.abs(entity.y -  player.y) < self.shootDistance) then
@@ -425,11 +476,11 @@ function start()
             end
           end,
           slowdown = function (self, entity, dt)
-            --math stuff for movement
-            entity.speed.x = entity.speed.x * entity.speedDrag
-            entity.speed.y = entity.speed.y * entity.speedDrag
+            entity.acceleration = {x=0, y=0}
             --check if speed is close to 0
             if math.abs(entity.speed.x) < 0.1 and math.abs(entity.speed.y) < 0.1 then
+              --turn toward player
+              entity.angle = -math.atan2(entity.x - player.x, entity.y - player.y)-math.rad(90)
               -- switch to "shoot" task
               self.task = "shoot"
             end
@@ -518,7 +569,7 @@ function love.keypressed(key, scancode, isrepeat)
   if key == "escape" then
     love.event.quit()
   end
-  if key == "r" then
+  if key == "k" then
     entities = {}
     start()
   end

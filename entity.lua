@@ -19,15 +19,18 @@ function movingEntityInit(entity)
   local entity = entity or newEntity()
 
   entity.speed={x=0, y=0}
+  entity.acceleration = {x=0, y=0}
   entity.speedDrag= 0.9
   entity.maxAcceleration = 3000
   entity.stuck = false
   table.insert(entity.updates, function (self, dt)
     if entity.stuck then
-      self.speed.x = 0
-      self.speed.y = 0
+      self.acceleration = {x=0, y=0}
+      self.speed = {x = 0, y=0}
       return
     end
+    self.speed.x = (self.speed.x + self.acceleration.x*dt)*entity.speedDrag
+    self.speed.y = (self.speed.y + self.acceleration.y*dt)*entity.speedDrag
     if self.maxSpeed then
       self.speed.x = math.max(-self.maxSpeed, math.min(self.speed.x, self.maxSpeed))
       self.speed.y = math.max(-self.maxSpeed, math.min(self.speed.y, self.maxSpeed))
@@ -274,9 +277,8 @@ function playerInit(entity)
       if love.keyboard.isDown("d") and not love.keyboard.isDown("q") then
         ax = self.maxAcceleration
       end
-      --speed, position and orientation calculations
-      self.speed.x = (self.speed.x + ax*dt)*self.speedDrag
-      self.speed.y = (self.speed.y + ay*dt)*self.speedDrag
+      --acceleration and orientation calculations
+      self.acceleration = {x=ax, y=ay}
       if math.abs(self.speed.x)>0 or math.abs(self.speed.y)>0 then
         self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
       end
