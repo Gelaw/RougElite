@@ -18,6 +18,27 @@ function levelDisplayInit()
         love.graphics.rectangle("fill", room.p1.x, room.p1.y, room.p2.x-room.p1.x, room.p2.y-room.p1.y)
       end
     end, 3)
+
+    --minimap
+    addDrawFunction(function ()
+      love.graphics.origin()
+      love.graphics.scale(.1)
+      love.graphics.translate(.5*width+100, .5*height+100)
+      love.graphics.setColor(.4,.4,.4)
+      love.graphics.rectangle("fill", -.5*width-100, -.5*height-100, width+200, height+200)
+      for r, room in pairs(rooms) do
+        love.graphics.setColor(room.roomcolor)
+        love.graphics.rectangle("fill", room.p1.x, room.p1.y, room.p2.x-room.p1.x, room.p2.y-room.p1.y)
+      end
+      love.graphics.scale(10)
+      love.graphics.setColor(0, 0, 0)
+      for w, wall in pairs(walls) do
+        love.graphics.line(wall[1].x/10, wall[1].y/10, wall[2].x/10, wall[2].y/10)
+      end
+      love.graphics.scale(.1)
+      love.graphics.setColor(player.color)
+      love.graphics.rectangle("fill", player.x, player.y, math.max(player.width, 30), math.max(player.height, 30))
+    end,9)
 end
 
 function levelSetup()
