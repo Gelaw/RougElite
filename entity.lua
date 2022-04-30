@@ -70,6 +70,16 @@ function livingEntityInit(entity)
     if self.dead then return end
     local quantity = quantity or 1
     self.life = self.life - quantity
+    table.insert(particuleEffects, {
+      x=self.x, y=self.y, timeLeft=1,
+      draw = function (self)
+        love.graphics.translate(self.x, self.y)
+        love.graphics.translate(5*(1-self.timeLeft), -10*(1-self.timeLeft))
+        love.graphics.scale(.5)
+        love.graphics.setColor(.8, .6, .5)
+        love.graphics.print(quantity)
+      end
+    })
     self.invicibility = {time = self.invicibilityTimeAfterHit}
     self.intangible = true
     if self.onHit then self:onHit() end

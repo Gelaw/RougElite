@@ -55,7 +55,7 @@ meleeTank = function ()
         deactivate = function (self, caster)
           self.active = false
           self.charges = self.charges - 1
-          local damage = self.minDamage + (self.maxDamage-self.minDamage)*(1-self.hitbox.fill)
+          local damage = math.floor(self.minDamage + (self.maxDamage-self.minDamage)*(1-self.hitbox.fill))
           caster.stuck = false
           local x, y, a, w, h = self.hitbox.x, self.hitbox.y, self.hitbox.angle, self.hitbox.width/2, self.hitbox.height/2
           local corners = {
@@ -190,7 +190,7 @@ meleeTank = function ()
         deactivate = function (self, caster)
           self.active = false
           self.charges = self.charges - 1
-          local damage = self.minDamage + (self.maxDamage-self.minDamage)*(1-self.hitbox.fill)
+          local damage = math.floor(self.minDamage + (self.maxDamage-self.minDamage)*(1-self.hitbox.fill))
           caster.stuck = false
           for e, entity in pairs(entities) do
             if entity.team and entity.team ~= caster.team and entity.life and entity.life > 0 then
