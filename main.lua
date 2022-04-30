@@ -1,6 +1,7 @@
 require "base"
 require "level"
 require "entity"
+require "entityLib"
 
 function test()
   local joysticks = love.joystick.getJoysticks()
@@ -13,8 +14,12 @@ function test()
     love.graphics.translate(-15, -15)
     if player.life then
       love.graphics.setColor(.1, .1, .2, .3)
-      love.graphics.rectangle("fill", 3, 0, 3*10, 5)
-      love.graphics.setColor(.1, .8, .2, .7)
+      love.graphics.rectangle("fill", 3, 0, 3*player.maxLife, 5)
+      if player.life > 0 then
+        love.graphics.setColor(.1, .8, .2, .7)
+      else
+        love.graphics.setColor(.8, .2, .1, .7)
+      end
       love.graphics.rectangle("fill", 3, 0, 3*player.life, 5)
     end
     --dash charges display
@@ -398,7 +403,7 @@ function start()
   --ennemy spawn
   for i = 1, 10 do
     local type = math.random(2)
-    local ennemy = applyParams(ableEntityInit(livingEntityInit(movingEntityInit())),
+    local ennemy = applyParams(IAinit(ableEntityInit(livingEntityInit(movingEntityInit()))),
       {
         color = (type == 1 and  {.1, .2, .9} or {.9, .3, .1}),
         ignoreWalls = type == 1,
@@ -417,7 +422,7 @@ function start()
         maxSpeed = 100,
         abilities = {
           shoot = applyParams(newAbility(), {
-            baseCooldown = math.random(1, 9),
+            baseCooldown = math.random(1, 3),
             displayOnUI = function (self)
               love.graphics.setColor(.2, .2, .2)
               love.graphics.rectangle("fill", 0, 0, 130, 130)
@@ -504,25 +509,18 @@ function start()
         },
         --necessary for base collision detection to consider this entity
         team = 2,
-        life = 1,
-        onDeath = function (self)
-          self.IA.task = "dead"
-          self.contactDamage = nil
-          self.speed = {x=0,y=0}
-          self.color = {.3, .3, .3}
-          table.insert(particuleEffects, {x=self.x, y=self.y, color = {.6, .2, .2}, nudge = 5, size = 3, timeLeft = 1})
-        end
+        life = 3+2*type, maxLife = 3+2*type,
       }
     )
-    table.insert(ennemy.updates,
-      function (self, dt)
-        if self.IA and self.IA[self.IA.task] then
-          self.IA[self.IA.task](self.IA, self, dt)
-        end
-      end)
     table.insert(entities, ennemy)
   end
-
+  body = applyParams(meleeTank(), {x=50, y=20, team=2})
+  body.dead = true
+  body:onDeath()
+  table.insert(entities, body)
+  for i = 1, 10 do
+    table.insert(entities, applyParams(meleeTank(), {x=math.random(-width/2, width/2), y=math.random(-height/2, height/2), team=2}))
+  end
   safeLoadAndRun("editableScript.lua")
 end
 
@@ -570,8 +568,7 @@ function love.keypressed(key, scancode, isrepeat)
     love.event.quit()
   end
   if key == "k" then
-    entities = {}
-    start()
+    player:onDeath()
   end
   if key == "h" then
     showHitboxes = not showHitboxes

@@ -50,19 +50,34 @@ end
 function livingEntityInit(entity)
   local entity = entity or newEntity()
 
+  entity.dead = false
   entity.life = 10
   entity.maxLife = 10
   entity.team = 0
   entity.invicibility = nil
   entity.invicibilityTimeAfterHit = .5
+  entity.onDeath = function (self)
+    if self.IA then
+      self.IA.task = "dead"
+    end
+    self.contactDamage = nil
+    self.speed = {x=0,y=0}
+    self.acceleration = {x=0,y=0}
+    self.color = {.3, .3, .3}
+    table.insert(particuleEffects, {x=self.x, y=self.y, color = {.6, .2, .2}, nudge = 5, size = 3, timeLeft = 1})
+  end
   entity.hit = function (self, quantity)
+    if self.dead then return end
     local quantity = quantity or 1
     self.life = self.life - quantity
     self.invicibility = {time = self.invicibilityTimeAfterHit}
     self.intangible = true
     if self.onHit then self:onHit() end
     --death check
-    if self.life <= 0 and self.onDeath then self:onDeath() end
+    if self.life <= 0 then
+      self.dead = true
+      if self.onDeath then self:onDeath() end
+    end
   end
   entity.collide = function (self, collider)
     --collision dismissed in case of invicibility or jump
@@ -179,7 +194,8 @@ function playerInit(entity)
         love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
       end
     end,
-    life = 10,
+    dead = false,
+    life = entity.maxLife,
     team = 1,
     onHit = function (self)
       cameraShake(20, .5)
@@ -194,7 +210,7 @@ function playerInit(entity)
       self.color = {.7, .1, .1}
       table.insert(particuleEffects, {x=self.x, y=self.y, color = {.6, .2, .2}, nudge = 5, size = 3, timeLeft = 1})
       --ghost out the shell
-      player = {
+      ghost = {
         shape = "rectangle",
         x=self.x, y=self.y,
         width = 10, height = 10,
@@ -239,17 +255,17 @@ function playerInit(entity)
           camera.y = (camera.y + self.y)/2
         end,
         collide = function (self, collider)
-          if collider.abilities and collider.life and collider.life <= 0 then
+          if collider.team and collider.team > 1 and collider.dead then
             --kill the ghost
-            player.terminated = true
+            ghost.terminated = true
             --take control of the enemy
             player = playerInit(collider)
             camera.mode = {"follow", player}
           end
         end
       }
-      camera.mode = {"follow", player}
-      table.insert(entities, player)
+      table.insert(entities, ghost)
+      camera.mode = {"follow", ghost}
     end
   })
   table.insert(entity.updates,
@@ -292,6 +308,18 @@ function playerInit(entity)
       end
     end
   )
+  return entity
+end
+
+function IAinit(entity)
+  entity = entity or newEntity()
+
+  table.insert(entity.updates,
+    function (self, dt)
+      if self.IA and self.IA[self.IA.task] then
+        self.IA[self.IA.task](self.IA, self, dt)
+      end
+    end)
   return entity
 end
 
