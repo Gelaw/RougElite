@@ -1,7 +1,8 @@
 require "base"
 require "level"
 require "entity"
-require "entityLib"
+require "bestiary"
+require "ia"
 
 function test()
   local joysticks = love.joystick.getJoysticks()
@@ -18,7 +19,7 @@ function test()
       if player.life > 0 then
         love.graphics.setColor(.1, .8, .2, .7)
       else
-        love.graphics.setColor(.8, .2, .1, .7)
+        love.graphics.setColor(.8, .2, .1, .2)
       end
       love.graphics.rectangle("fill", 3, 0, 3*player.life, 5)
     end
@@ -162,242 +163,17 @@ function start()
     color = {.4, .6, .2},
     x=10, y=10,
     abilities = {
-      dash = applyParams(newAbility(), {
-        baseCooldown = 1,
-        activationDuration = .3,
-        charges = 3, maxCharges = 3,
-        activate = function (self, caster)
-          self.angle = caster.angle
-          self.activeTimer = self.activationDuration
-          self.active = true
-        end,
-        activeUpdate = function (self, dt, caster)
-          self.activeTimer = self.activeTimer - dt
-          local newPosition = {x = caster.x + math.cos(self.angle)*200 * dt, y= caster.y + math.sin(self.angle)*200 * dt}
-          if wallCollision(caster, newPosition) and not self.ignoreWalls then
-            self:deactivate(caster)
-          else
-            caster.x = newPosition.x
-            caster.y = newPosition.y
-          end
-        end,
-        bindCheck = function ()
-          return (joystick and joystick:isDown(6)) or love.keyboard.isDown("lshift")
-        end
-      }),
-      jump = applyParams(newAbility(), {
-        baseCooldown = 0.001,
-        activationDuration = 1,
-        maxZ = 8,
-        activeUpdate = function (self, dt, caster)
-          self.activeTimer = self.activeTimer - dt
-          caster.z = self.maxZ * (self.activeTimer>.5*self.activationDuration and (1-self.activeTimer/self.activationDuration) or (self.activeTimer/self.activationDuration))
-        end,
-        bindCheck = function ()
-          return (joystick and joystick:isDown(1)) or love.keyboard.isDown("space")
-        end
-      }),
-      fracasMeutrier = applyParams(newAbility(), {
-        baseCooldown = 5,
-        activationDuration = 3,
-        displayOnUI = function (self)
-          love.graphics.setColor(.2, .2, .2)
-          love.graphics.rectangle("fill", 0, 0, 130, 130)
-          love.graphics.setColor(1, 1, 1, .1)
-          love.graphics.rectangle("fill", 0, 0, 130, 130 * (1-self.cooldown/self.baseCooldown))
-        end,
-        hitbox = nil,
-        activate = function (self, caster)
-          self.activeTimer = self.activationDuration
-          self.active = true
-          self.keyReleased = false
-          caster.stuck = true
-          self.hitbox = applyParams(newEntity(),{
-            color = {1, .3, .3, .2},
-            x=caster.x+ 40*math.cos(caster.angle), y=caster.y + 40*math.sin(caster.angle),
-            angle = caster.angle, width = 80, height = 80,
-            fill = 0,
-            draw = function (self)
-              love.graphics.push()
-              love.graphics.setColor(self.color)
-              love.graphics.translate(self.x, self.y)
-              love.graphics.rotate(self.angle)
-              love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
-              love.graphics.rectangle("fill", -self.width/2, -(1-self.fill)*self.height/2, self.width*(1-self.fill), (1-self.fill)*self.height)
-              love.graphics.setColor(0, 0, 0)
-              love.graphics.rotate(-self.angle)
-              love.graphics.print(math.floor(self.fill*10)/10)
-              love.graphics.pop()
-            end
-          })
-          table.insert(entities, self.hitbox)
-        end,
-        activeUpdate = function (self, dt, caster)
-          self.activeTimer = self.activeTimer - dt
-          applyParams(self.hitbox, {
-            x=caster.x+ 40*math.cos(caster.angle), y=caster.y + 40*math.sin(caster.angle),fill = self.activeTimer / self.activationDuration
-          })
-          self.hitbox.angle = caster.angle
-          if not self:bindCheck() then self.keyReleased = true end
-          if self:bindCheck() and self.keyReleased then self:deactivate(caster) end
-        end,
-        deactivate = function (self, caster)
-          self.active = false
-          self.charges = self.charges - 1
-
-          caster.stuck = false
-          local x, y, a, w, h = self.hitbox.x, self.hitbox.y, self.hitbox.angle, self.hitbox.width/2, self.hitbox.height/2
-          local corners = {
-            {x=x + math.cos(a)*(w) - math.sin(a)*(h),y= y + math.sin(a)*(w) + math.cos(a)*(h)},
-            {x=x + math.cos(a)*(-w) - math.sin(a)*(h),y= y + math.sin(a)*(-w) + math.cos(a)*(h)},
-            {x=x + math.cos(a)*(-w) - math.sin(a)*(-h),y= y + math.sin(a)*(-w) + math.cos(a)*(-h)},
-            {x=x + math.cos(a)*(w) - math.sin(a)*(-h),y= y + math.sin(a)*(w) + math.cos(a)*(-h)},
-          }
-          for e, entity in pairs(entities) do
-            if entity.team and entity.team ~= caster.team and entity.life and entity.life > 0 then
-              local outside = false
-              for i = 1, 4 do
-                if checkIntersect(corners[i], corners[(i%4)+1], entity, {x=x, y=y}) then
-                  outside = true
-                  break
-                end
-              end
-              if not outside then entity:hit() end
-            end
-          end
-          self.hitbox.color[4] = 1
-          table.insert(particuleEffects, {x=x, y=y, color = self.hitbox.color, nudge = w, size = 2, timeLeft = 1})
-          self.hitbox.terminated = true
-        end,
-        bindCheck = function ()
-          return (joystick and joystick:isDown(2)) or love.keyboard.isDown("a")
-        end
-      }),
-      unbreakable = applyParams(newAbility(), {
-        baseCooldown = 5,
-        displayOnUI = function (self)
-          love.graphics.setColor(.2, .2, .2)
-          love.graphics.rectangle("fill", 0, 0, 130, 130)
-          if self.active then
-            local t = love.timer.getTime()
-            love.graphics.setColor(0, math.cos(t), math.sin(t), .9)
-            love.graphics.rectangle("fill", 0, 0, 130, 130)
-          elseif self.cooldown and self.cooldown > 0 then
-            love.graphics.setColor(1, 1, 1, .1)
-            love.graphics.rectangle("fill", 0, 0, 130, 130 * (1-self.cooldown/self.baseCooldown))
-            love.graphics.setColor(1, 1, 1)
-            love.graphics.print(math.floor(self.cooldown*10)/10, 130/2, 130/2)
-          end
-        end,
-        distanceToCaster = 10,
-        activationDuration = 10,
-        hitbox = nil,
-        activate = function (self, caster)
-          self.activeTimer = self.activationDuration
-          self.active = true
-          self.hitbox = applyParams(newEntity(),{
-            color = {.2, .2, 1, 1},
-            x=caster.x+ self.distanceToCaster*math.cos(caster.angle), y=caster.y + self.distanceToCaster*math.sin(caster.angle),
-            angle = caster.angle, width = 3, height = 40, durability = 3, team = 1,
-            draw = function (self)
-              love.graphics.push()
-              love.graphics.setColor(self.color)
-              love.graphics.translate(self.x, self.y)
-              love.graphics.rotate(self.angle)
-              love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
-              love.graphics.pop()
-            end,
-            collide = function (self, collider)
-              if collider.team and collider.team <= 1 then return end
-              if not collider.contactDamage then return end
-              self.durability = self.durability - 1
-              if self.durability <= 0 then
-                table.insert(particuleEffects, {x=self.x, y=self.y, nudge=30, size=1, timeLeft=.5, color=self.color})
-                self.terminated = true
-              end
-            end
-          })
-          table.insert(entities, self.hitbox)
-        end,
-        activeUpdate = function (self, dt, caster)
-          self.activeTimer = self.activeTimer - dt
-          if self.hitbox.terminated then
-            self:deactivate(caster)
-            return
-          end
-          applyParams(self.hitbox, {
-            x=caster.x+ self.distanceToCaster*math.cos(self.hitbox.angle), y=caster.y + self.distanceToCaster*math.sin(self.hitbox.angle)
-          })
-        end,
-        deactivate = function (self)
-          self.active = false
-          self.charges = self.charges - 1
-          self.hitbox.terminated = true
-        end,
-        bindCheck = function ()
-          return (joystick and joystick:isDown(4)) or love.keyboard.isDown("e")
-        end
-      }),
-      absoluteZero = applyParams(newAbility(), {
-        baseCooldown = 30,
-        displayOnUI = function (self)
-          love.graphics.setColor(.2, .2, .2)
-          love.graphics.rectangle("fill", 0, 0, 130, 130)
-          love.graphics.setColor(1, 1, 1, .1)
-          love.graphics.rectangle("fill", 0, 0, 130, 130 * (1-self.cooldown/self.baseCooldown))
-        end,
-        activationDuration = 10,
-        hitbox = nil,
-        activate = function (self, caster)
-          self.activeTimer = self.activationDuration
-          self.active = true
-          self.keyReleased = false
-          caster.stuck = true
-          self.hitbox = applyParams(newEntity(),{
-            color = {.5, .5, 1, .1}, radius = 70,
-            x=caster.x, y=caster.y, fill = self.activeTimer / self.activationDuration,
-            draw = function (self)
-              love.graphics.push()
-              love.graphics.setColor(self.color)
-              love.graphics.translate(self.x, self.y)
-              love.graphics.circle("fill", 0, 0, self.radius)
-              love.graphics.circle("fill", 0, 0, self.radius*self.fill)
-              love.graphics.pop()
-            end,
-          })
-          table.insert(entities, self.hitbox)
-        end,
-        activeUpdate = function (self, dt, caster)
-          self.activeTimer = self.activeTimer - dt
-          self.hitbox.fill = self.activeTimer / self.activationDuration
-          if not self:bindCheck() then self.keyReleased = true end
-          if self:bindCheck() and self.keyReleased then self:deactivate(caster) end
-        end,
-        deactivate = function (self, caster)
-          self.active = false
-          self.charges = self.charges - 1
-          caster.stuck = false
-          for e, entity in pairs(entities) do
-            if entity.team and entity.team ~= caster.team and entity.life and entity.life > 0 then
-              if math.dist(self.hitbox.x, self.hitbox.y, entity.x, entity.y) <= self.hitbox.radius then
-                entity:hit()
-              end
-            end
-          end
-          self.hitbox.terminated = true
-        end,
-        bindCheck = function ()
-          return (joystick and joystick:isDown(8)) or love.keyboard.isDown("r")
-        end
-      })
+      dash = applyParams(newAbility(), abilitiesLibrary.dash),
+      jump = applyParams(newAbility(), abilitiesLibrary.jump),
+      decimatingSmash = applyParams(newAbility(), abilitiesLibrary.decimatingSmash),
+      unbreakable = applyParams(newAbility(), abilitiesLibrary.unbreakable),
+      absoluteZero = applyParams(newAbility(), abilitiesLibrary.absoluteZero),
+      autohit = applyParams(newAbility(), abilitiesLibrary.meleeAutoHit),
+      shoot = applyParams(newAbility(), abilitiesLibrary.shoot)
     },
   })
 
   table.insert(entities, player)
-
-  --use in base camera.update()
-  camera.mode = {"follow", player}
-
 
 
   --ennemy spawn
@@ -409,104 +185,13 @@ function start()
         ignoreWalls = type == 1,
         x=math.random(-width/2, width/2), y=math.random(-height/2, height/2),
         height = (type == 1 and 5 or 10), contactDamage = (type==1 and nil or 1),
-        draw = function (self)
-          --function defined in base for quick display
-          basicEntityDraw(self)
-          --display current IA task of entity
-          love.graphics.rotate(-self.angle)
-          love.graphics.translate(3, 0)
-          love.graphics.scale(2/camera.scale)
-          love.graphics.print(self.IA.task)
-        end,
         maxAcceleration = math.random(1200, 1500)*type,
         maxSpeed = 100,
         abilities = {
-          shoot = applyParams(newAbility(), {
-            baseCooldown = math.random(1, 3),
-            displayOnUI = function (self)
-              love.graphics.setColor(.2, .2, .2)
-              love.graphics.rectangle("fill", 0, 0, 130, 130)
-              love.graphics.setColor(1, 1, 1, .1)
-              love.graphics.rectangle("fill", 0, 0, 130, 130 * (1-self.cooldown/self.baseCooldown))
-            end,
-            activate = function (self, caster)
-
-              --spawn projectile entity
-              local projectile = {
-                  shape = "rectangle",
-                  color = {0, 0, 0},
-                  x=caster.x + math.cos(caster.angle)*5,
-                  y=caster.y + math.sin(caster.angle)*5,
-                  width=5, height=1, angle=caster.angle, speed = 300,
-                  timer = 0,
-                  update = function (self, dt)
-                    self.timer = self.timer + dt
-                    if self.timer > 4 then self.terminated = true return end
-                    self.x = self.x + math.cos(self.angle)*dt*self.speed
-                    self.y = self.y + math.sin(self.angle)*dt*self.speed
-                  end,
-                  contactDamage = 2,
-                  team = caster.team,
-                  collide = function (self, collider)
-                    if self.team and collider.team and collider.team ~= self.team then
-                      self.terminated = true
-                    end
-                  end
-              }
-
-              table.insert(entities, projectile)
-              self.active = true
-            end,
-            bindCheck = function ()
-              return (joystick and joystick:isDown(4)) or love.keyboard.isDown("e")
-            end
-          })
+          shoot = applyParams(newAbility(), abilitiesLibrary.shoot)
         },
         --behavior
-        IA = {
-          --default task
-          task = "follow",
-          shootCooldownTimer = 0, shootCooldown = math.random(1, 9),
-          followDistance = math.random(30, 120), shootDistance = math.random(30, 90),
-          follow = function (self, entity, dt)
-            --turn toward player
-            entity.angle = -math.atan2(entity.x - player.x, entity.y - player.y)-math.rad(90)
-            --math stuff for movement
-            entity.acceleration = {x=entity.maxAcceleration*math.cos(entity.angle), y=entity.maxAcceleration*math.sin(entity.angle)}
-
-            --check if player is close
-            if (math.abs(entity.x - player.x) < self.shootDistance and math.abs(entity.y -  player.y) < self.shootDistance) then
-              --switch to "slowdown" task
-              self.task = "slowdown"
-            end
-          end,
-          slowdown = function (self, entity, dt)
-            entity.acceleration = {x=0, y=0}
-            --check if speed is close to 0
-            if math.abs(entity.speed.x) < 0.1 and math.abs(entity.speed.y) < 0.1 then
-              --turn toward player
-              entity.angle = -math.atan2(entity.x - player.x, entity.y - player.y)-math.rad(90)
-              -- switch to "shoot" task
-              self.task = "shoot"
-            end
-          end,
-          shoot = function (self, entity, dt)
-            --turn toward player
-            entity.angle = -math.atan2(entity.x - player.x, entity.y - player.y)-math.rad(90)
-            --init a cooldown timer and switch to reload task
-            if entity.abilities.shoot.cooldown > 0 then
-              self.task = "reload"
-            end
-          end,
-          reload = function (self, entity, dt)
-            if entity.abilities.shoot.cooldown > 0 then return end
-            if (math.abs(entity.x - player.x) > self.followDistance or math.abs(entity.y -  player.y) > self.followDistance) then
-              self.task = "follow"
-            else
-              self.task = "shoot"
-            end
-          end
-        },
+        IA = basicIA(),
         --necessary for base collision detection to consider this entity
         team = 2,
         life = 3+2*type, maxLife = 3+2*type,
@@ -514,12 +199,12 @@ function start()
     )
     table.insert(entities, ennemy)
   end
-  body = applyParams(meleeTank(), {x=50, y=20, team=2})
-  body.dead = true
-  body:onDeath()
-  table.insert(entities, body)
-  for i = 1, 10 do
-    table.insert(entities, applyParams(meleeTank(), {x=math.random(-width/2, width/2), y=math.random(-height/2, height/2), team=2}))
+  for i = 1, 20 do
+    if math.random() > .5  then
+      table.insert(entities, applyParams(meleeDps(), {x=math.random(-width/2, width/2), y=math.random(-height/2, height/2), team=2}))
+    else
+      table.insert(entities, applyParams(meleeTank(), {x=math.random(-width/2, width/2), y=math.random(-height/2, height/2), team=2}))
+    end
   end
   safeLoadAndRun("editableScript.lua")
 end
@@ -567,8 +252,28 @@ function love.keypressed(key, scancode, isrepeat)
   if key == "escape" then
     love.event.quit()
   end
-  if key == "k" then
-    player:onDeath()
+  if key == "k"  then
+    if not player.dead then
+      player.dead = true
+      player:onDeath()
+    else
+      player = applyParams(playerInit(ableEntityInit(livingEntityInit(movingEntityInit()))),  {
+        --display
+        color = {.4, .6, .2},
+        x=ghost.x, y=ghost.y,
+        abilities = {
+          dash = applyParams(newAbility(), abilitiesLibrary.dash),
+          jump = applyParams(newAbility(), abilitiesLibrary.jump),
+          decimatingSmash = applyParams(newAbility(), abilitiesLibrary.decimatingSmash),
+          unbreakable = applyParams(newAbility(), abilitiesLibrary.unbreakable),
+          absoluteZero = applyParams(newAbility(), abilitiesLibrary.absoluteZero),
+          autohit = applyParams(newAbility(), abilitiesLibrary.meleeAutoHit),
+          shoot = applyParams(newAbility(), abilitiesLibrary.shoot)
+        },
+      })
+      table.insert(entities, player)
+      ghost.terminated = true
+    end
   end
   if key == "h" then
     showHitboxes = not showHitboxes

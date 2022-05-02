@@ -1,4 +1,4 @@
-
+joystickButtons = {"A","B","X","Y","LB","RB", "select", "start", "LJ", "RJ"}
 
 draws = {}
 for i = 1, 9 do
@@ -268,6 +268,13 @@ function love.load(arg)
   test()
 end
 
+
+function applyParams(table, parameters)
+  for p, parameter in pairs(parameters) do
+    table[p] = parameter
+  end
+  return table
+end
 
 
 -- Extra math functions from https://love2d.org/wiki/General_math

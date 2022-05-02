@@ -120,14 +120,34 @@ function newAbility()
   return {
     update = function (self, dt, caster) end,
     active = false,
+    name = "defaultName",
+    range = math.huge,
     activeTimer = 0,
+    displayOnUI = function (self)
+      love.graphics.setColor(.2, .2, .2)
+      love.graphics.rectangle("fill", 0, 0, 130, 130)
+      if self.cooldown > 0 then
+        love.graphics.setColor(1, 1, 1, .1)
+        love.graphics.rectangle("fill", 0, 0, 130, 130 * (1-self.cooldown/self.baseCooldown))
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.print(math.floor(self.cooldown*10)/10, .5*130, .75*130)
+      end
+      love.graphics.setColor(1, 1, 1)
+      love.graphics.print(self.name, .5*130-.5*love.graphics.getFont():getWidth(self.name), .5*130)
+      love.graphics.print(joystickButtons[self.joystickBind])
+      love.graphics.print(self.keyboardBind, 0, 115)
+    end,
     activationDuration = 0,
     baseCooldown = 99,
     cooldown = 0,
     charges = 1,
     maxCharges = 1,
+    keyboardBind = 2,
+    joystickBind = "a",
     castConditions = function () return true end,
-    bindCheck = function () end,
+    bindCheck = function (self)
+      return (self.joystickBind and joystick and joystick:isDown(self.joystickBind)) or(self.keyboardBind and love.keyboard.isDown(self.keyboardBind))
+    end,
     activate = function (self)
       self.activeTimer = self.activationDuration
       self.active = true
@@ -158,9 +178,9 @@ function ableEntityInit(entity)
   table.insert(entity.updates, function (self, dt)
     for a, ability in pairs(self.abilities) do
       ability:update(dt, entity)
-      if ability.cooldown > 0 then
+      if ability.cooldown > 0 or ability.baseCooldown <= 0 then
         ability:cooldownUpdate(dt, entity)
-        if ability.cooldown <= 0 then
+        if ability.cooldown <= 0 or ability.baseCooldown <= 0 then
           ability:onCooldownEnd(entity)
         end
       elseif ability.charges < ability.maxCharges then
@@ -172,7 +192,7 @@ function ableEntityInit(entity)
           ability:deactivate(entity)
         end
       elseif ability.charges > 0  and ability:castConditions(entity) ~= nil then
-        if (player == entity and ability:bindCheck()) or (entity.IA and a==entity.IA.task) then
+        if (player == entity and ability:bindCheck()) or (entity.IA and a==entity.IA.cast) then
           ability:activate(entity)
         end
       end
@@ -184,6 +204,8 @@ end
 function playerInit(entity)
   local entity = entity or newEntity()
 
+  --used in base camera.update()
+  camera.mode = {"follow", entity}
   applyParams(entity, {
     draw = function (self)
       love.graphics.translate(self.x, self.y)
@@ -213,7 +235,6 @@ function playerInit(entity)
         joystick:setVibration(.05, .05, .2 )
       end
     end,
-    IA = nil,
     onDeath = function (self)
       self.update = nil
       self.collide = nil
@@ -278,6 +299,7 @@ function playerInit(entity)
       camera.mode = {"follow", ghost}
     end
   })
+  entity.IA = nil
   table.insert(entity.updates,
     function (self, dt)
       --temporary acceleration variables
@@ -319,23 +341,4 @@ function playerInit(entity)
     end
   )
   return entity
-end
-
-function IAinit(entity)
-  entity = entity or newEntity()
-
-  table.insert(entity.updates,
-    function (self, dt)
-      if self.IA and self.IA[self.IA.task] then
-        self.IA[self.IA.task](self.IA, self, dt)
-      end
-    end)
-  return entity
-end
-
-function applyParams(table, parameters)
-  for p, parameter in pairs(parameters) do
-    table[p] = parameter
-  end
-  return table
 end
