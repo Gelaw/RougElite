@@ -277,4 +277,7 @@ function love.keypressed(key, scancode, isrepeat)
   if key == "h" then
     showHitboxes = not showHitboxes
   end
+  if key == "m" then
+    levelSetup()
+  end
 end
