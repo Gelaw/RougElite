@@ -278,7 +278,7 @@ abilitiesLibrary = {
 }
 
 meleeTank = function ()
-  return applyParams(IAinit(ableEntityInit(livingEntityInit(movingEntityInit()))), {
+  return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
     maxSpeed= 40,
     color = {.5, .4, .8},
     life = 10,
@@ -293,7 +293,7 @@ meleeTank = function ()
 end
 
 meleeDps = function ()
-  return applyParams(IAinit(ableEntityInit(livingEntityInit(movingEntityInit()))), {
+  return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
     maxSpeed= 120,
     color = {.8, .4, .2},
     life = 6,

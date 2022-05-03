@@ -158,7 +158,7 @@ function start()
   levelSetup()
   cameraSetup()
   collectibles = 0
-  player = applyParams(playerInit(ableEntityInit(livingEntityInit(movingEntityInit()))),  {
+  player = entitySetup({ableEntityInit,livingEntityInit,movingEntityInit,playerInit},  {
     --display
     color = {.4, .6, .2},
     x=10, y=10,
@@ -179,8 +179,7 @@ function start()
   --ennemy spawn
   for i = 1, 10 do
     local type = math.random(2)
-    local ennemy = applyParams(IAinit(ableEntityInit(livingEntityInit(movingEntityInit()))),
-      {
+    local ennemy = entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit},{
         color = (type == 1 and  {.1, .2, .9} or {.9, .3, .1}),
         ignoreWalls = type == 1,
         x=math.random(-width/2, width/2), y=math.random(-height/2, height/2),
@@ -257,7 +256,7 @@ function love.keypressed(key, scancode, isrepeat)
       player.dead = true
       player:onDeath()
     else
-      player = applyParams(playerInit(ableEntityInit(livingEntityInit(movingEntityInit()))),  {
+      player = entitySetup({ableEntityInit,livingEntityInit,movingEntityInit,playerInit},  {
         --display
         color = {.4, .6, .2},
         x=ghost.x, y=ghost.y,

@@ -288,7 +288,8 @@ function playerInit(entity)
         collide = function (self, collider)
           if collider.team and collider.team > 1 and collider.dead then
             --kill the ghost
-            ghost.terminated = true
+            self.terminated = true
+            self.collide = nil
             --take control of the enemy
             player = playerInit(collider)
             camera.mode = {"follow", player}
@@ -341,4 +342,12 @@ function playerInit(entity)
     end
   )
   return entity
+end
+
+function entitySetup(initFunctions, extraParams)
+  local entity = nil
+  for f, func in pairs(initFunctions) do
+    entity = func(entity)
+  end
+  return applyParams(entity, extraParams)
 end
