@@ -60,7 +60,6 @@ function splitRoom(p1, p2, horizontal)
   if horizontal == nil then horizontal = math.random()<.5 end
   --Recursive breakpoint: room size
   if math.abs(p2.x - p1.x) > 500 and math.abs(p2.y - p1.y) > 500 then
-    print(math.abs(p2.x - p1.x), math.abs(p2.y - p1.y))
     --midPoint : wall and door position
     local mp = {x=math.random(p1.x+250, p2.x-250), y = math.random(p1.y+250, p2.y-250)}
     if horizontal then
@@ -75,7 +74,7 @@ function splitRoom(p1, p2, horizontal)
       splitRoom({x=mp.x, y=p1.y}, p2, true)
     end
   else
-    local roomcolor = {math.random()*.5+.1, math.random()*.5+.1, math.random()*.5+.1, .3}
+    local roomcolor = {math.random()*.2+.2, math.random()*.2+.2, math.random()*.2+.2, 1}
     table.insert(rooms, {p1=p1, p2=p2, roomcolor=roomcolor})
   end
 end

@@ -281,3 +281,7 @@ function love.keypressed(key, scancode, isrepeat)
     levelSetup()
   end
 end
+
+function love.wheelmoved(x, y)
+  camera.angle = camera.angle + y*0.1
+end

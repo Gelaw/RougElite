@@ -6,6 +6,27 @@ function newEntity()
     color = {1, .7, .9},
     x=10, y=10, z=0, width=5, height=5, angle=0,
     updates = {},
+    draw = function (self)
+      love.graphics.translate(self.x, self.y)
+      love.graphics.rotate(self.angle)
+      --shadow display
+      love.graphics.setColor(0, 0, 0, 0.1)
+      love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
+      --body display (flickering in case of invicibility frames)
+      love.graphics.rotate(-self.angle-camera.angle)
+      love.graphics.translate(0, -3-self.z)
+      love.graphics.rotate(self.angle+camera.angle)
+      love.graphics.scale(1+self.z*0.3)
+      if not self.invicibility or (math.floor(self.invicibility.time*20))%2~=1 then
+          -- jump calculations
+        love.graphics.setColor(self.color)
+        love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
+        if self == player then
+          love.graphics.setColor(0, .5, .8, .5)
+          love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
+        end
+      end
+    end,
     update = function (self, dt)
       for u, updateFunction in pairs(self.updates) do
         updateFunction(self, dt)
@@ -207,25 +228,6 @@ function playerInit(entity)
   --used in base camera.update()
   camera.mode = {"follow", entity}
   applyParams(entity, {
-    draw = function (self)
-      love.graphics.translate(self.x, self.y)
-      love.graphics.rotate(self.angle)
-      --shadow display
-      love.graphics.setColor(0, 0, 0, 0.1)
-      love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
-      --body display (flickering in case of invicibility frames)
-      love.graphics.rotate(-self.angle)
-      love.graphics.translate(0, -1-self.z)
-      love.graphics.rotate(self.angle)
-      love.graphics.scale(1+self.z*0.3)
-      if not self.invicibility or (math.floor(self.invicibility.time*20))%2~=1 then
-          -- jump calculations
-        love.graphics.setColor(self.color)
-        love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
-        love.graphics.setColor(0, .5, .8, .5)
-        love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
-      end
-    end,
     dead = false,
     life = entity.maxLife,
     team = 1,
@@ -274,16 +276,16 @@ function playerInit(entity)
             ax = self.maxAcceleration
           end
           --speed, position and orientation calculations
-          self.speed.x = (self.speed.x + ax*dt)*self.speedDrag
-          self.speed.y = (self.speed.y + ay*dt)*self.speedDrag
+          local a = camera.angle
+          self.acceleration = {x=ax*math.cos(a)+ay*math.sin(a), y=ay*math.cos(a)-ax*math.sin(a)}
+          self.speed.x = (self.speed.x + self.acceleration.x*dt)*self.speedDrag
+          self.speed.y = (self.speed.y + self.acceleration.y*dt)*self.speedDrag
           if math.abs(self.speed.x)>0 or math.abs(self.speed.y)>0 then
             self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
           end
           local newPosition = {x = self.x + self.speed.x * dt, y= self.y + self.speed.y * dt}
           self.x = newPosition.x
           self.y = newPosition.y
-          camera.x = (camera.x + self.x)/2
-          camera.y = (camera.y + self.y)/2
         end,
         collide = function (self, collider)
           if collider.team and collider.team > 1 and collider.dead then
@@ -305,14 +307,6 @@ function playerInit(entity)
     function (self, dt)
       --temporary acceleration variables
       local ax, ay = 0, 0
-      --if gamepad is connected, use left joystick as input
-      if joystick then
-        a1, a2, a3 = joystick:getAxes()
-        --check if joystick is outside of deadzone (TODO later: parameter 0.3 to be extrated and made modifiable once parameter norm in place)
-        if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
-          ax, ay = self.maxAcceleration*a1*math.abs(a1), self.maxAcceleration*a2*math.abs(a2)
-        end
-      end
       --keyboard ZQSD binds for player movement
       if love.keyboard.isDown("z") and not love.keyboard.isDown("s") then
         ay = -self.maxAcceleration
@@ -326,10 +320,36 @@ function playerInit(entity)
       if love.keyboard.isDown("d") and not love.keyboard.isDown("q") then
         ax = self.maxAcceleration
       end
+      --if gamepad is connected, use left joystick as input
+      if joystick then
+        a1, a2, a3, a4, a5, a6 = joystick:getAxes()
+        if a3 == 1 and a6 == 1 then
+          camera.angle = -player.angle - math.rad(90)
+          if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
+            if a2<-0.1 then
+              ax, ay = self.maxAcceleration*a1*0.05, self.maxAcceleration*a2
+            end
+
+          end
+        else
+          camera.angle = camera.angle + 0.01*(a3 - a6)
+          --check if joystick is outside of deadzone (TODO later: parameter 0.3 to be extrated and made modifiable once parameter norm in place)
+          if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
+            ax, ay = self.maxAcceleration*a1*math.abs(a1), self.maxAcceleration*a2*math.abs(a2)
+          end
+        end
+      end
+
       --acceleration and orientation calculations
-      self.acceleration = {x=ax, y=ay}
+      local a = camera.angle
+      self.acceleration = {x=ax*math.cos(a)+ay*math.sin(a), y=ay*math.cos(a)-ax*math.sin(a)}
       if math.abs(self.speed.x)>0 or math.abs(self.speed.y)>0 then
         self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
+        if joystick then
+          if a3 == 1 and a6 == 1 then
+            self.angle = self.angle + a1*0.1
+          end
+        end
       end
 
       --camera zoom control
