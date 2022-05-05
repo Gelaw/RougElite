@@ -39,8 +39,8 @@ function basicIA()
         end
         local choice = nil, nil
         for a, ability in pairs(entity.abilities) do
-          if ability.cooldown <= 0 then
-            if not choice or entity.abilities[choice].range < ability.range then
+          if ability.charges > 0 then
+            if not choice or (entity.abilities[choice].range < ability.range and (not ability.rangeMin or ability.rangeMin < distance)) then
               choice = a
             end
           end

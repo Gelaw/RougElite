@@ -3,6 +3,7 @@ require "level"
 require "entity"
 require "bestiary"
 require "ia"
+require "ability"
 
 function test()
   local joysticks = love.joystick.getJoysticks()
@@ -158,30 +159,14 @@ function start()
   levelSetup()
   cameraSetup()
   collectibles = 0
-  player = entitySetup({ableEntityInit,livingEntityInit,movingEntityInit,playerInit},  {
-    --display
-    color = {.4, .6, .2},
-    x=10, y=10,
-    abilities = {
-      dash = applyParams(newAbility(), abilitiesLibrary.dash),
-      jump = applyParams(newAbility(), abilitiesLibrary.jump),
-      decimatingSmash = applyParams(newAbility(), abilitiesLibrary.decimatingSmash),
-      unbreakable = applyParams(newAbility(), abilitiesLibrary.unbreakable),
-      absoluteZero = applyParams(newAbility(), abilitiesLibrary.absoluteZero),
-      autohit = applyParams(newAbility(), abilitiesLibrary.meleeAutoHit),
-      shoot = applyParams(newAbility(), abilitiesLibrary.shoot)
-    },
-  })
 
-  table.insert(entities, player)
-
+  newPlayer()
 
   --ennemy spawn
   for i = 1, 10 do
     local type = math.random(2)
     local ennemy = entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit},{
         color = (type == 1 and  {.1, .2, .9} or {.9, .3, .1}),
-        ignoreWalls = type == 1,
         x=math.random(-width/2, width/2), y=math.random(-height/2, height/2),
         height = (type == 1 and 5 or 10), contactDamage = (type==1 and nil or 1),
         maxAcceleration = math.random(1200, 1500)*type,
@@ -206,6 +191,27 @@ function start()
     end
   end
   safeLoadAndRun("editableScript.lua")
+end
+
+function newPlayer(params)
+  player = entitySetup({ableEntityInit,livingEntityInit,movingEntityInit,playerInit},  {
+    --display
+    color = {.4, .6, .2},
+    x=10, y=10,
+    abilities = {
+      dash = newAbility("dash"),
+      jump = newAbility("jump"),
+      decimatingSmash = newAbility("decimatingSmash"),
+      unbreakable = newAbility("unbreakable"),
+      absoluteZero = newAbility("absoluteZero"),
+      autohit = newAbility("meleeAutoHit"),
+      shoot = newAbility("shoot")
+    },
+  })
+  if params then
+    applyParams(player, params)
+  end
+  table.insert(entities, player)
 end
 
 --variables used in player update
@@ -256,21 +262,7 @@ function love.keypressed(key, scancode, isrepeat)
       player.dead = true
       player:onDeath()
     else
-      player = entitySetup({ableEntityInit,livingEntityInit,movingEntityInit,playerInit},  {
-        --display
-        color = {.4, .6, .2},
-        x=ghost.x, y=ghost.y,
-        abilities = {
-          dash = applyParams(newAbility(), abilitiesLibrary.dash),
-          jump = applyParams(newAbility(), abilitiesLibrary.jump),
-          decimatingSmash = applyParams(newAbility(), abilitiesLibrary.decimatingSmash),
-          unbreakable = applyParams(newAbility(), abilitiesLibrary.unbreakable),
-          absoluteZero = applyParams(newAbility(), abilitiesLibrary.absoluteZero),
-          autohit = applyParams(newAbility(), abilitiesLibrary.meleeAutoHit),
-          shoot = applyParams(newAbility(), abilitiesLibrary.shoot)
-        },
-      })
-      table.insert(entities, player)
+      newPlayer({x=ghost.x, y=ghost.y})
       ghost.terminated = true
     end
   end
