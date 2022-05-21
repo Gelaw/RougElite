@@ -158,61 +158,7 @@ function playerInit(entity)
       self.color = {.7, .1, .1}
       table.insert(particuleEffects, {x=self.x, y=self.y, color = {.6, .2, .2}, nudge = 5, size = 3, timeLeft = 1})
       --ghost out the shell
-      ghost = {
-        shape = "rectangle",
-        x=self.x, y=self.y,
-        width = 10, height = 10,
-        color = {.3, .3, 1},
-        speed={x=0, y=0},
-        speedDrag= 0.9,
-        maxAcceleration = 3000,
-        update = function (self,  dt)
-          --temporary acceleration variables
-          local ax, ay = 0, 0
-          --if gamepad is connected, use left joystick as input
-          if joystick then
-            a1, a2, a3 = joystick:getAxes()
-            --check if joystick is outside of deadzone (TODO later: parameter 0.3 to be extrated and made modifiable once parameter norm in place)
-            if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
-              ax, ay = self.maxAcceleration*a1*math.abs(a1), self.maxAcceleration*a2*math.abs(a2)
-            end
-          end
-          --keyboard ZQSD binds for player movement
-          if love.keyboard.isDown("z") and not love.keyboard.isDown("s") then
-            ay = -self.maxAcceleration
-          end
-          if love.keyboard.isDown("s") and not love.keyboard.isDown("z") then
-            ay = self.maxAcceleration
-          end
-          if love.keyboard.isDown("q") and not love.keyboard.isDown("d") then
-            ax = -self.maxAcceleration
-          end
-          if love.keyboard.isDown("d") and not love.keyboard.isDown("q") then
-            ax = self.maxAcceleration
-          end
-          --speed, position and orientation calculations
-          local a = camera.angle
-          self.acceleration = {x=ax*math.cos(a)+ay*math.sin(a), y=ay*math.cos(a)-ax*math.sin(a)}
-          self.speed.x = (self.speed.x + self.acceleration.x*dt)*self.speedDrag
-          self.speed.y = (self.speed.y + self.acceleration.y*dt)*self.speedDrag
-          if math.abs(self.speed.x)>0 or math.abs(self.speed.y)>0 then
-            self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
-          end
-          local newPosition = {x = self.x + self.speed.x * dt, y= self.y + self.speed.y * dt}
-          self.x = newPosition.x
-          self.y = newPosition.y
-        end,
-        collide = function (self, collider)
-          if collider.team and collider.team > 1 and collider.dead then
-            --kill the ghost
-            self.terminated = true
-            self.collide = nil
-            --take control of the enemy
-            player = playerInit(collider)
-            camera.mode = {"follow", player}
-          end
-        end
-      }
+      ghost = newGhost({x=self.x, y=self.y})
       table.insert(entities, ghost)
       camera.mode = {"follow", ghost}
     end
@@ -277,6 +223,70 @@ function playerInit(entity)
     end
   )
   return entity
+end
+
+function newGhost(params)
+  ghost = {
+    shape = "rectangle",
+    x=0, y=0,
+    width = 10, height = 10,
+    color = {.3, .3, 1},
+    speed={x=0, y=0},
+    speedDrag= 0.9,
+    maxAcceleration = 3000,
+    update = function (self,  dt)
+      --temporary acceleration variables
+      local ax, ay = 0, 0
+      --if gamepad is connected, use left joystick as input
+      if joystick then
+        a1, a2, a3 = joystick:getAxes()
+        --check if joystick is outside of deadzone (TODO later: parameter 0.3 to be extrated and made modifiable once parameter norm in place)
+        if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
+          ax, ay = self.maxAcceleration*a1*math.abs(a1), self.maxAcceleration*a2*math.abs(a2)
+        end
+      end
+      --keyboard ZQSD binds for player movement
+      if love.keyboard.isDown("z") and not love.keyboard.isDown("s") then
+        ay = -self.maxAcceleration
+      end
+      if love.keyboard.isDown("s") and not love.keyboard.isDown("z") then
+        ay = self.maxAcceleration
+      end
+      if love.keyboard.isDown("q") and not love.keyboard.isDown("d") then
+        ax = -self.maxAcceleration
+      end
+      if love.keyboard.isDown("d") and not love.keyboard.isDown("q") then
+        ax = self.maxAcceleration
+      end
+      --speed, position and orientation calculations
+      local a = camera.angle
+      self.acceleration = {x=ax*math.cos(a)+ay*math.sin(a), y=ay*math.cos(a)-ax*math.sin(a)}
+      self.speed.x = (self.speed.x + self.acceleration.x*dt)*self.speedDrag
+      self.speed.y = (self.speed.y + self.acceleration.y*dt)*self.speedDrag
+      if math.abs(self.speed.x)>0 or math.abs(self.speed.y)>0 then
+        self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
+      end
+      local newPosition = {x = self.x + self.speed.x * dt, y= self.y + self.speed.y * dt}
+      self.x = newPosition.x
+      self.y = newPosition.y
+    end,
+    collide = function (self, collider)
+      if collider.team and collider.team > 1 and collider.dead then
+        --kill the ghost
+        self.terminated = true
+        self.collide = nil
+        --take control of the enemy
+        player = playerInit(collider)
+        camera.mode = {"follow", player}
+      end
+    end
+  }
+  if params then
+    applyParams(ghost, params)
+  end
+  camera.mode = {"follow", ghost}
+  table.insert(entities, ghost)
+  return ghost
 end
 
 function entitySetup(initFunctions, extraParams)

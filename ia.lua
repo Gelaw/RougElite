@@ -19,11 +19,18 @@ end
 
 function basicIA()
   return applyParams(newIA(), {
-    task = "idle", aggroRange = 300,
+    difficultyCoef = 1,
+    task = "unstarted", aggroRange = 300,
+    unstarted = applyParams(newTask(), {
+      update = function (self, ia, entity)
+        if not (player and not player.dead and player.x>-width/2 and player.x < width/2 and player.y>-height/2 and player.y<height/2 )then return end
+        ia:switchToTask("idle")
+      end
+    }),
     idle = applyParams(newTask(), {
       update = function (self, ia, entity)
-        if not player or not player.life or player.dead then return end
-        if math.dist(entity.x, entity.y, player.x, player.y) < ia.aggroRange then
+        if not player or player.dead then return end
+        if math.dist(entity.x, entity.y, player.x, player.y) < ia.aggroRange and math.random()*ia.difficultyCoef > .99 then
           --turn toward player
           entity.angle = math.angle(entity.x, entity.y, player.x, player.y)
           ia:switchToTask("decision")
@@ -33,7 +40,7 @@ function basicIA()
     decision = applyParams(newTask(), {
       update = function (self, ia, entity)
         local distance = math.dist(entity.x, entity.y, player.x, player.y)
-        if not player or not player.life or player.dead or distance > ia.aggroRange then
+        if not player or not player.life or player.dead or distance > ia.aggroRange or math.random()*ia.difficultyCoef > .5 then
           ia:switchToTask("idle")
           return
         end
@@ -79,9 +86,9 @@ function basicIA()
     run = applyParams(newTask(), {
       start = function (self, ia, entity)
         entity.angle = math.random()*2*math.pi
-        local accQ = math.random()
+        local accQ = math.min(math.random() * ia.difficultyCoef, 1)
         entity.acceleration = {x=accQ*entity.maxAcceleration*math.cos(entity.angle), y=accQ*entity.maxAcceleration*math.sin(entity.angle)}
-        self.timer = .3
+        self.timer = .3 * ia.difficultyCoef
       end,
       update = function (self, ia, entity, dt)
         self.timer = self.timer - dt
