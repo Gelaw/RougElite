@@ -1,84 +1,43 @@
-
-function levelDisplayInit()
-
-    --wall Display
-      -- TODO non urgent setup a image on load to increase display performances
-    addDrawFunction( function ()
-        for w, wall in pairs(walls) do
-          love.graphics.setColor(0, 0, 0)
-          love.graphics.line(wall[1].x, wall[1].y, wall[2].x, wall[2].y)
-        end
-      end
-    )
-
-    --room Display
-    addDrawFunction(function ()
-      for r, room in pairs(rooms) do
-        love.graphics.setColor(room.roomcolor)
-        love.graphics.rectangle("fill", room.x-room.w/2, room.y-room.h/2, room.w, room.h)
-        if roomHighlight and roomHighlight ~= room then
-          love.graphics.setColor(.2, .2, .2, .1)
-          love.graphics.rectangle("fill", room.x-room.w/2, room.y-room.h/2, room.w, room.h)
-        end
-      end
-    end, 3)
-
-    --minimap
-    addDrawFunction(function ()
-      love.graphics.origin()
-      love.graphics.scale(.1)
-      love.graphics.translate(.5*width+100, .5*height+100)
-      love.graphics.setColor(.2,.2,.2)
-      love.graphics.rectangle("fill", -.5*width-100, -.5*height-100, width+200, height+200)
-      love.graphics.translate(-camera.x, -camera.y)
-      for r, room in pairs(rooms) do
-        love.graphics.setColor(room.roomcolor)
-        love.graphics.rectangle("fill", room.x-room.w/2, room.y-room.h/2, room.w, room.h)
-      end
-      love.graphics.scale(10)
-      love.graphics.setColor(0, 0, 0)
-      for w, wall in pairs(walls) do
-        love.graphics.line(wall[1].x/10, wall[1].y/10, wall[2].x/10, wall[2].y/10)
-      end
-      if player then
-        love.graphics.scale(.1)
-        love.graphics.setColor(player.color)
-        love.graphics.rectangle("fill", player.x, player.y, math.max(player.width, 30), math.max(player.height, 30))
-      end
-      if ghost then
-        love.graphics.scale(.1)
-        love.graphics.setColor(ghost.color)
-        love.graphics.rectangle("fill", ghost.x, ghost.y, math.max(ghost.width, 30), math.max(ghost.height, 30))
-      end
-    end,9)
-end
-
-
-
-function levelSetup()
-  baseRoomSize = 300
-  levelRooms = {
-    {x=   0, y=   0, w=  baseRoomSize, h=  baseRoomSize}
-  }
-  love.filesystem.setIdentity("levelEditor")
-  import()
-  calculate()
-  generateWalls()
-end
-
+baseRoomSize = 300
+levelRooms = {}
 
 north = "north"
 south = "south"
 east = "east"
 west = "west"
 
-
 directions = {
-  north = {0, -1},
-  south = {0, 1},
-  east = {1, 0},
-  west = {-1, 0}
+  north = { 0, -1},
+  south = { 0,  1},
+  east  = { 1,  0},
+  west  = {-1,  0}
 }
+
+function saveToFile()
+  local text = "levelRooms = "
+  text = text .. recursiveToString(levelRooms, "")
+  print(text)
+  success, message = love.filesystem.write( "level.file", text)
+  print(success, message)
+end
+
+function recursiveToString(element, tabs)
+  if type(element) == "string" then return "\""..element.."\"" end
+  if type(element) ~= "table" then return element end
+  local text = "{"
+  local i = 0
+  for p, property in pairs(element) do
+    if type(p) == "number" then
+      i = i + 1
+      text = text.."\n" .. tabs.."\t" ..recursiveToString(property, tabs.."\t")..","
+    elseif type(property) ~= "function" then
+      i = i + 1
+      text = text.."\n".. tabs.."\t" ..p .. "="..recursiveToString(property, tabs.."\t")..","
+    end
+  end
+  if i > 0 then text = text .. "\n".. tabs end
+  return text .. "}"
+end
 
 function cardinalOpposite(direction)
   if direction == "north" then
@@ -94,6 +53,20 @@ function cardinalOpposite(direction)
     return "west"
   end
 end
+
+addDrawFunction(function ()
+  math.randomseed(5)
+  for r, room in pairs(levelRooms) do
+    love.graphics.setColor(0, 0, 0, .2)
+    love.graphics.rectangle("line", room.x-.5*room.w, room.y-.5*room.h, room.w, room.h)
+    love.graphics.setColor(math.random(), math.random(), math.random(), .2)
+    love.graphics.rectangle("fill", room.x-.5*room.w, room.y-.5*room.h, room.w, room.h)
+    if roomHighlight and roomHighlight~=room then
+      love.graphics.setColor(0, 0, 0, .2)
+      love.graphics.rectangle("fill", room.x-.5*room.w, room.y-.5*room.h, room.w, room.h)
+    end
+  end
+end, 5)
 
 function calculate()
   for r, room in pairs(levelRooms) do
@@ -123,6 +96,16 @@ function calculate()
     end
   end
 end
+walls = {}
+--wall Display
+  -- TODO non urgent setup a image on load to increase display performances
+addDrawFunction( function ()
+    for w, wall in pairs(walls) do
+      love.graphics.setColor(0, 0, 0)
+      love.graphics.line(wall[1].x, wall[1].y, wall[2].x, wall[2].y)
+    end
+  end
+)
 
 function generateWalls()
   walls = {}
@@ -148,7 +131,7 @@ end
 basedoorWidth = 1
 
 function addWall(p1, p2, doors)
-    table.sort(doors, function(a, b) return a.c < b.c end)
+  table.sort(doors, function(a, b) return a.c < b.c end)   -- sort from smallest to largest
   if doors then
     local p = p1
     for d, door in pairs(doors) do
@@ -169,31 +152,7 @@ function addWall(p1, p2, doors)
 end
 
 
-function import()
-  safeLoadAndRun("level.file")
+function levelSetup()
 end
-
-function saveToFile()
-  local text = "levelRooms = "
-  text = text .. recursiveToString(levelRooms, "")
-  print(text)
-  success, message = love.filesystem.write( "level.file", text)
-  print(success, message)
-end
-
-function recursiveToString(element, tabs)
-  if type(element) ~= "table" then return element end
-  local text = "{"
-  local i = 0
-  for p, property in pairs(element) do
-    if type(p) == "number" then
-      i = i + 1
-      text = text.."\n" .. tabs.."\t" ..recursiveToString(property, tabs.."\t")..","
-    elseif type(property) ~= "function" then
-      i = i + 1
-      text = text.."\n".. tabs.."\t" ..p .. "="..recursiveToString(property, tabs.."\t")..","
-    end
-  end
-  if i > 0 then text = text .. "\n".. tabs end
-  return text .. "}"
+function levelDisplayInit()
 end

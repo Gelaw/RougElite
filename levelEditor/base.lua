@@ -254,14 +254,14 @@ function safeLoadAndRun(name)
   local ok, chunk, result
   ok, chunk = pcall( love.filesystem.load, name ) -- load the chunk safely
   if not ok then
-    -- print('The following error happened: ' .. tostring(chunk))
+    return('The following error happened: ' .. tostring(chunk))
   else
     ok, result = pcall(chunk) -- execute the chunk safely
 
     if not ok then -- will be false if there is an error
-      -- print('The following error happened: ' .. tostring(result))
+      return('The following error happened: ' .. tostring(result))
     else
-      -- print('The result of loading is: ' .. tostring(result))
+      return('The result of loading is: ' .. tostring(result))
     end
   end
 end

@@ -1,0 +1,7 @@
+To use the level editor:
+Open a new project folder in atom with this folder, and launch it.
+click & drag on nothing to move camera around, ctrl + scroll to zoom in & out.
+double click adds a room, buttons appear on mouseover to move, resize.
+ link 2 rooms by moving one close to another, edge to edge.
+Test wall generation by pressing G.
+to save the level press CTRL + S. You can then open it in game as usual.
