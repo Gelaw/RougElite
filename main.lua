@@ -201,7 +201,9 @@ function start()
   levelSetup()
 
 
-  newGhost({x=0, y=0})
+  newPlayer({x=0, y=0})
+
+  -- table.insert(entities, applyParams(enemiesLibrary.mage(), {x= 30, y=30}))
 
   safeLoadAndRun("editableScript.lua")
 end
@@ -213,13 +215,7 @@ function newPlayer(params)
     color = {.4, .6, .2},
     x=0, y=0,
     abilities = {
-      dash = newAbility("dash"),
-      jump = newAbility("jump"),
-      decimatingSmash = newAbility("decimatingSmash"),
-      unbreakable = newAbility("unbreakable"),
-      absoluteZero = newAbility("absoluteZero"),
-      autohit = newAbility("meleeAutoHit"),
-      shoot = newAbility("shoot")
+      valkyrie = newAbility("valkyrie")
     },
   })
   if params then

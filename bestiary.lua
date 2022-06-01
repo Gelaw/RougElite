@@ -50,5 +50,18 @@ enemiesLibrary = {
       team = 2,
       life = 3+2*type, maxLife = 3+2*type,
     })
+  end,
+
+  mage = function ()
+    return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
+      maxSpeed= 400,
+      color = {.8, 0, .8},
+      life = 3,
+      maxLife=3,
+      abilities = {
+        thunderCall = newAbility("thunderCall")
+      },
+      IA = basicIA()
+    })
   end
 }

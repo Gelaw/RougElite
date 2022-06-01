@@ -184,7 +184,7 @@ abilitiesLibrary = {
     name = "autoattack",
     joystickBind = 1,
     keyboardBind = "x",
-    angleDelta = math.rad(90),
+    angleDelta = math.rad(180),
     activate = function (self, caster)
       local angle = 0
       local distance = 0
@@ -199,7 +199,24 @@ abilitiesLibrary = {
             caster.angle = angle
             caster.speed = {x=0,y=0}
             caster.acceleration = {x=0,y=0}
-            table.insert(particuleEffects, {x=entity.x, y=entity.y, timeLeft=.1, color={.1,.1,.1,.4}, nudge=5, size=5})
+            table.insert(entities, {
+              x=caster.x,
+              y=caster.y,
+              startx = caster.x,
+              starty = caster.y,
+              dest=entity,
+              timeLeft=.1,
+              travelTime = .1,
+              color={.1,.1,.1,.4},
+              shape = "rectangle",
+              width = 5, height = 5,
+              update  = function (self, dt)
+                self.timeLeft = self.timeLeft - dt
+                self.x = self.dest.x + (self.timeLeft/self.travelTime)*(self.startx-self.dest.x)
+                self.y = self.dest.y + (self.timeLeft/self.travelTime)*(self.starty-self.dest.y)
+                if self.timeLeft <=0 then self.terminated = true end
+              end
+            })
             return
           end
         end
@@ -258,29 +275,117 @@ abilitiesLibrary = {
 
       --spawn projectile entity
       local projectile = {
-          shape = "rectangle",
-          color = {0, 0, 0},
-          x=caster.x + math.cos(caster.angle)*5,
-          y=caster.y + math.sin(caster.angle)*5,
-          width=5, height=1, angle=caster.angle, speed = 300,
-          timer = 0,
-          update = function (self, dt)
-            self.timer = self.timer + dt
-            if self.timer > 4 then self.terminated = true return end
-            self.x = self.x + math.cos(self.angle)*dt*self.speed
-            self.y = self.y + math.sin(self.angle)*dt*self.speed
-          end,
-          contactDamage = 2,
-          team = caster.team,
-          collide = function (self, collider)
-            if self.team and collider.team and collider.team ~= self.team then
-              self.terminated = true
-            end
+        shape = "rectangle",
+        color = {0, 0, 0},
+        x=caster.x + math.cos(caster.angle)*5,
+        y=caster.y + math.sin(caster.angle)*5,
+        width=5, height=1, angle=caster.angle, speed = 300,
+        timer = 0,
+        update = function (self, dt)
+          self.timer = self.timer + dt
+          if self.timer > 4 then self.terminated = true return end
+          self.x = self.x + math.cos(self.angle)*dt*self.speed
+          self.y = self.y + math.sin(self.angle)*dt*self.speed
+        end,
+        contactDamage = 2,
+        team = caster.team,
+        collide = function (self, collider)
+          if self.team and collider.team and collider.team ~= self.team then
+            self.terminated = true
           end
+        end
       }
 
       table.insert(entities, projectile)
       self.active = true
+    end
+  },
+  thunderCall = {
+    name = "thunderCall",
+    joystickBind = 3,
+    keyboardBind = "e",
+    baseCooldown = 1,
+    numberOfHits = 30,
+    range = 60,
+    interHitTimer = 0,
+    activate = function (self, caster)
+      self.hitsLeft = self.numberOfHits
+      self.active = true
+      self.interHitTimer = 0
+    end,
+    activeUpdate = function (self, dt, caster)
+      if caster.dead then self:deactivate(caster) end
+      if self.hitsLeft > 0 then
+        self.interHitTimer = self.interHitTimer - dt
+        if self.interHitTimer <= 0 then
+          self.interHitTimer = .1
+          local hits = math.random()*.25*self.hitsLeft + 1
+          for i = 1, hits do
+            self.hitsLeft = self.hitsLeft - 1
+            local angle = caster.angle + (math.random()-.5)* .5*math.pi
+            local distance = (.7*math.random()^1.15+.3)*self.range
+            local hitbox = applyParams(newEntity(),{
+              color = {.2, .2, 1, .1},
+              x=caster.x + distance*math.cos(angle), y=caster.y + distance*math.sin(angle),
+              fill = 0, timerTillStrike = 1,
+              radius = 7, team = caster.team,
+              draw = function (self)
+                love.graphics.push()
+                love.graphics.setColor(self.color)
+                love.graphics.translate(self.x, self.y)
+                love.graphics.circle("fill", 0, 0, self.radius)
+                love.graphics.setColor(1, 1, 1, (self.fill-.2)/10)
+                love.graphics.circle("fill", 0, 0, self.radius*self.fill)
+                love.graphics.pop()
+              end,
+              update = function (self, dt)
+                self.timerTillStrike = self.timerTillStrike - dt
+                self.fill = 1 - self.timerTillStrike
+                if self.timerTillStrike <= 0 then
+                  for e, entity in pairs(entities) do
+                    if entity.team and entity.team ~= caster.team and entity.life and entity.life > 0 then
+                      if math.dist(self.x, self.y, entity.x, entity.y)<= self.radius then entity:hit(damage) end
+                    end
+                  end
+                  self.terminated = true
+                end
+              end
+            })
+            table.insert(entities, hitbox)
+          end
+        end
+      else
+        self:deactivate(caster)
+      end
+    end
+  },
+  valkyrie = {
+    name = "valkyrie",
+    joystickBind = 5,
+    keyboardBind = "space",
+    baseCooldown = 10,
+    activationDuration = 1,
+    maxZ = 8,
+    activate = function (self, caster)
+      self.angle = caster.angle
+      self.activeTimer = self.activationDuration
+      self.active = true
+    end,
+    activeUpdate = function (self, dt, caster)
+      self.activeTimer = self.activeTimer - dt
+      caster.z = self.maxZ * (self.activeTimer>.5*self.activationDuration and (1-self.activeTimer/self.activationDuration) or (self.activeTimer/self.activationDuration))
+      local newPosition = {x = caster.x + math.cos(self.angle)*200 * dt, y= caster.y + math.sin(self.angle)*200 * dt}
+      if wallCollision(caster, newPosition) and not self.ignoreWalls then
+        self:deactivate(caster)
+      else
+        caster.x = newPosition.x
+        caster.y = newPosition.y
+      end
+    end,
+    deactivate = function (self, caster)
+      self.active = false
+      self.charges = self.charges - 1
+      caster.z = 0
     end
   }
 }
@@ -367,7 +472,7 @@ function ableEntityInit(entity)
       end
       if ability.active then
         ability:activeUpdate(dt, entity)
-        if ability.activeTimer <= 0 then
+        if ability.activationDuration and ability.activationDuration > 0 and ability.activeTimer <= 0 then
           ability:deactivate(entity)
         end
       elseif ability.charges > 0  and ability:castConditions(entity) ~= nil then
