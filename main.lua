@@ -286,7 +286,7 @@ function love.keypressed(key, scancode, isrepeat)
     love.event.quit()
   end
   if key == "k"  then
-    if not player.dead then
+    if player and not player.dead then
       player.dead = true
       player:onDeath()
     else
