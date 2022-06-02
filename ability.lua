@@ -364,22 +364,60 @@ abilitiesLibrary = {
     joystickBind = 5,
     keyboardBind = "space",
     baseCooldown = 10,
-    activationDuration = 1,
+    activationDuration = .5,
     maxZ = 8,
+    hitboxSize = 30,
+    hitboxRef = nil,
     activate = function (self, caster)
-      self.angle = caster.angle
-      self.activeTimer = self.activationDuration
       self.active = true
+      self.activeTimer = self.activationDuration
+      self.angle = caster.angle
+      self.hitboxRef = {x=caster.x, y=caster.y}
     end,
     activeUpdate = function (self, dt, caster)
       self.activeTimer = self.activeTimer - dt
       caster.z = self.maxZ * (self.activeTimer>.5*self.activationDuration and (1-self.activeTimer/self.activationDuration) or (self.activeTimer/self.activationDuration))
-      local newPosition = {x = caster.x + math.cos(self.angle)*200 * dt, y= caster.y + math.sin(self.angle)*200 * dt}
+      local newPosition = {x = caster.x + math.cos(self.angle)*300* dt, y= caster.y + math.sin(self.angle)*300*dt}
       if wallCollision(caster, newPosition) and not self.ignoreWalls then
         self:deactivate(caster)
       else
         caster.x = newPosition.x
         caster.y = newPosition.y
+        caster.speed = {x=0, y=0}
+        caster.acceleration = {x=0, y=0}
+        if math.dist(self.hitboxRef.x, self.hitboxRef.y, caster.x, caster.y) > self.hitboxSize then
+          table.insert(entities, {
+            x = self.hitboxRef.x + self.hitboxSize*math.cos(self.angle), y = self.hitboxRef.y + self.hitboxSize*math.sin(self.angle),
+            shape = "rectangle",
+            angle = self.angle, width = self.hitboxSize, height = self.hitboxSize,
+            color = {.7, .5, .5, .5},
+            timeLeft = 5, team = caster.team,
+            update = function (self, dt)
+              self.timeLeft = self.timeLeft - dt
+              if self.timeLeft <= 0 then self.terminated = true end
+              local x, y, a, w, h = self.x, self.y, self.angle, self.width/2, self.height/2
+              local corners = {
+                {x=x + math.cos(a)*(w) - math.sin(a)*(h),y= y + math.sin(a)*(w) + math.cos(a)*(h)},
+                {x=x + math.cos(a)*(-w) - math.sin(a)*(h),y= y + math.sin(a)*(-w) + math.cos(a)*(h)},
+                {x=x + math.cos(a)*(-w) - math.sin(a)*(-h),y= y + math.sin(a)*(-w) + math.cos(a)*(-h)},
+                {x=x + math.cos(a)*(w) - math.sin(a)*(-h),y= y + math.sin(a)*(w) + math.cos(a)*(-h)},
+              }
+              for e, entity in pairs(entities) do
+                if not entity.dead and entity.team ~= self.team  then
+                  local outside = false
+                  for i = 1, 4 do
+                    if checkIntersect(corners[i], corners[(i%4)+1], entity, {x=x, y=y}) then
+                      outside = true
+                      break
+                    end
+                  end
+                  if not outside then entity:hit() end
+                end
+              end
+            end
+          })
+          self.hitboxRef = {x = self.hitboxRef.x + self.hitboxSize*math.cos(self.angle), y = self.hitboxRef.y + self.hitboxSize*math.sin(self.angle)}
+        end
       end
     end,
     deactivate = function (self, caster)

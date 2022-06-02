@@ -203,7 +203,7 @@ function start()
 
   newPlayer({x=0, y=0})
 
-  -- table.insert(entities, applyParams(enemiesLibrary.mage(), {x= 30, y=30}))
+  table.insert(entities, applyParams(enemiesLibrary.mage(), {x= 30, y=30}))
 
   safeLoadAndRun("editableScript.lua")
 end
