@@ -201,10 +201,28 @@ function start()
   levelSetup()
 
 
-  newPlayer({x=0, y=0})
+  newGhost({x=rooms[1].x, y=rooms[1].y})
 
-  table.insert(entities, applyParams(enemiesLibrary.mage(), {x= 30, y=30}))
-
+  enemyLibKeys = {}
+  for e, enemy in pairs(enemiesLibrary) do
+    table.insert(enemyLibKeys, e)
+  end
+  math.randomseed(0)
+  for r, room in pairs(rooms) do
+    if r == 1 then
+      for i = 1, 3 do
+        local type = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
+        local ent = applyParams(type(), {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2, dead = true, maxLife = 20, life = 20, team = 2})
+        ent:onDeath()
+        table.insert(entities, ent)
+      end
+    else
+      local type = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
+      for i = 1, math.random(10) do
+        table.insert(entities, applyParams(type(), {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2, maxLife = 5, life = 5}))
+      end
+    end
+  end
   safeLoadAndRun("editableScript.lua")
 end
 

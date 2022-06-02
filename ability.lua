@@ -272,7 +272,6 @@ abilitiesLibrary = {
     keyboardBind = "e",
     baseCooldown = 1,
     activate = function (self, caster)
-
       --spawn projectile entity
       local projectile = {
         shape = "rectangle",
@@ -295,9 +294,8 @@ abilitiesLibrary = {
           end
         end
       }
-
       table.insert(entities, projectile)
-      self.active = true
+      self.charges = self.charges - 1
     end
   },
   thunderCall = {
@@ -403,7 +401,7 @@ abilitiesLibrary = {
                 {x=x + math.cos(a)*(w) - math.sin(a)*(-h),y= y + math.sin(a)*(w) + math.cos(a)*(-h)},
               }
               for e, entity in pairs(entities) do
-                if not entity.dead and entity.team ~= self.team  then
+                if not entity.dead and entity.team ~= self.team and entity.hit then
                   local outside = false
                   for i = 1, 4 do
                     if checkIntersect(corners[i], corners[(i%4)+1], entity, {x=x, y=y}) then

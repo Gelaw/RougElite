@@ -57,11 +57,9 @@ end
 
 function levelSetup()
   baseRoomSize = 300
-  levelRooms = {
-    {x=   0, y=   0, w=  baseRoomSize, h=  baseRoomSize}
-  }
+  safeLoadAndRun("baselevel.file")
   love.filesystem.setIdentity("levelEditor")
-  import()
+  safeLoadAndRun("level.file")
   calculate()
   generateWalls()
 end
@@ -166,11 +164,6 @@ function addWall(p1, p2, doors)
   else
     table.insert(walls, {p1, p2})
   end
-end
-
-
-function import()
-  safeLoadAndRun("level.file")
 end
 
 function saveToFile()
