@@ -158,11 +158,11 @@ function start()
   math.randomseed(os.time())
 
   cameraSetup()
-  collectibles = 0
+
+
 
   difficultyCoef = 1
   enemies = {}
-
   updateTimerClosestEnemy = .2
   addUpdateFunction(function (dt)
     if not player or #enemies==0 then return end
@@ -172,7 +172,7 @@ function start()
       closest, dist = enemies[1], math.dist(player.x, player.y,enemies[1].x, enemies[1].y)
       for e = #enemies, 1, -1 do
         enemy = enemies[e]
-        if enemy.dead then
+        if enemy.dead or enemy.terminated then
           table.remove(enemies, e)
         else
           enemy.IA.difficultyCoef = difficultyCoef
@@ -185,6 +185,30 @@ function start()
     end
   end)
   addDrawFunction(function ()
+    if #enemies == 0 then
+      love.graphics.push()
+      love.graphics.origin()
+      love.graphics.translate(.5*width, .5*height)
+      victoire = victoire or {s=30}
+      love.graphics.setColor(.73, .5, .4)
+      love.graphics.polygon("fill",
+         victoire.s,  victoire.s,
+        -victoire.s,  victoire.s,
+        -1.5*victoire.s, 0,
+        -victoire.s, -victoire.s,
+         victoire.s, -victoire.s,
+         1.5*victoire.s, 0)
+      victoire.s = math.min(victoire.s + 1, 120)
+      love.graphics.setColor(.2, .8, .4)
+      local text = "Victoire"
+      local normalfont = love.graphics.getFont()
+      bigassfont = bigassfont or love.graphics.newFont(48)
+      love.graphics.setFont(bigassfont)
+      love.graphics.print(text, -.5*bigassfont:getWidth(text),-.5*bigassfont:getHeight())
+      love.graphics.setFont(normalfont)
+      love.graphics.pop()
+      return
+    end
     if not closest then return end
     love.graphics.setColor(1, 1, 1)
     love.graphics.translate(closest.x, closest.y)
@@ -203,6 +227,7 @@ function start()
 
   newGhost({x=rooms[1].x, y=rooms[1].y})
 
+
   enemyLibKeys = {}
   for e, enemy in pairs(enemiesLibrary) do
     table.insert(enemyLibKeys, e)
@@ -218,8 +243,10 @@ function start()
       end
     else
       local type = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
-      for i = 1, math.random(10) do
-        table.insert(entities, applyParams(type(), {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2, maxLife = 5, life = 5}))
+      for i = 1, math.random(3) do
+        local enemy = applyParams(type(), {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2, maxLife = 5, life = 5})
+        table.insert(entities, enemy)
+        table.insert(enemies, enemy)
       end
     end
   end
@@ -233,7 +260,7 @@ function newPlayer(params)
     color = {.4, .6, .2},
     x=0, y=0,
     abilities = {
-      valkyrie = newAbility("valkyrie")
+      cupcakeTrap = newAbility("cupcakeTrap")
     },
   })
   if params then

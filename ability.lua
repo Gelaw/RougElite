@@ -14,7 +14,7 @@ abilitiesLibrary = {
       self.active = true
       self.keyReleased = false
       caster.stuck = true
-      self.hitbox = applyParams(newEntity(),{
+      self.hitbox = {
         color = {1, .3, .3, .2},
         x=caster.x+ .5*self.range*math.cos(caster.angle), y=caster.y + .5*self.range*math.sin(caster.angle),
         angle = caster.angle, width = self.range, height = self.range,
@@ -26,12 +26,9 @@ abilitiesLibrary = {
           love.graphics.rotate(self.angle)
           love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
           love.graphics.rectangle("fill", -self.width/2, -(1-self.fill)*self.height/2, self.width*(1-self.fill), (1-self.fill)*self.height)
-          love.graphics.setColor(0, 0, 0)
-          love.graphics.rotate(-self.angle)
-          love.graphics.print(math.floor(self.fill*10)/10)
           love.graphics.pop()
         end
-      })
+      }
       table.insert(entities, self.hitbox)
     end,
     activeUpdate = function (self, dt, caster)
@@ -48,27 +45,9 @@ abilitiesLibrary = {
       self.charges = self.charges - 1
       local damage = math.floor(self.minDamage + (self.maxDamage-self.minDamage)*(1-self.hitbox.fill))
       caster.stuck = false
-      local x, y, a, w, h = self.hitbox.x, self.hitbox.y, self.hitbox.angle, self.hitbox.width/2, self.hitbox.height/2
-      local corners = {
-        {x=x + math.cos(a)*(w) - math.sin(a)*(h),y= y + math.sin(a)*(w) + math.cos(a)*(h)},
-        {x=x + math.cos(a)*(-w) - math.sin(a)*(h),y= y + math.sin(a)*(-w) + math.cos(a)*(h)},
-        {x=x + math.cos(a)*(-w) - math.sin(a)*(-h),y= y + math.sin(a)*(-w) + math.cos(a)*(-h)},
-        {x=x + math.cos(a)*(w) - math.sin(a)*(-h),y= y + math.sin(a)*(w) + math.cos(a)*(-h)},
-      }
-      for e, entity in pairs(entities) do
-        if entity.team and entity.team ~= caster.team and entity.life and entity.life > 0 then
-          local outside = false
-          for i = 1, 4 do
-            if checkIntersect(corners[i], corners[(i%4)+1], entity, {x=x, y=y}) then
-              outside = true
-              break
-            end
-          end
-          if not outside then entity:hit(damage) end
-        end
-      end
+      hitInHitbox(self.hitbox, caster, damage)
       self.hitbox.color[4] = 1
-      table.insert(particuleEffects, {x=x, y=y, color = self.hitbox.color, nudge = w, size = 2, timeLeft = 1})
+      table.insert(particuleEffects, {x=self.hitbox.x, y=self.hitbox.y, color = self.hitbox.color, nudge = self.hitbox.width, size = 2, timeLeft = 1})
       self.hitbox.terminated = true
     end
   },
@@ -142,7 +121,7 @@ abilitiesLibrary = {
       self.active = true
       self.keyReleased = false
       caster.stuck = true
-      self.hitbox = applyParams(newEntity(),{
+      self.hitbox = {
         color = {.5, .5, 1, .1}, radius = self.range,
         x=caster.x, y=caster.y, fill = self.activeTimer / self.activationDuration,
         draw = function (self)
@@ -152,8 +131,8 @@ abilitiesLibrary = {
           love.graphics.circle("fill", 0, 0, self.radius)
           love.graphics.circle("fill", 0, 0, self.radius*self.fill)
           love.graphics.pop()
-        end,
-      })
+        end
+      }
       table.insert(entities, self.hitbox)
     end,
     activeUpdate = function (self, dt, caster)
@@ -167,13 +146,7 @@ abilitiesLibrary = {
       self.charges = self.charges - 1
       local damage = math.floor(self.minDamage + (self.maxDamage-self.minDamage)*(1-self.hitbox.fill))
       caster.stuck = false
-      for e, entity in pairs(entities) do
-        if entity.team and entity.team ~= caster.team and entity.life and entity.life > 0 then
-          if math.dist(self.hitbox.x, self.hitbox.y, entity.x, entity.y) <= self.range then
-            entity:hit(damage)
-          end
-        end
-      end
+      hitInHitbox(self.hitbox, caster, damage)
       self.hitbox.terminated = true
     end
   },
@@ -303,8 +276,8 @@ abilitiesLibrary = {
     joystickBind = 3,
     keyboardBind = "e",
     baseCooldown = 1,
-    numberOfHits = 30,
-    range = 60,
+    numberOfHits = 15,
+    range = 120,
     interHitTimer = 0,
     activate = function (self, caster)
       self.hitsLeft = self.numberOfHits
@@ -322,11 +295,11 @@ abilitiesLibrary = {
             self.hitsLeft = self.hitsLeft - 1
             local angle = caster.angle + (math.random()-.5)* .5*math.pi
             local distance = (.7*math.random()^1.15+.3)*self.range
-            local hitbox = applyParams(newEntity(),{
+            local hitbox = {
               color = {.2, .2, 1, .1},
               x=caster.x + distance*math.cos(angle), y=caster.y + distance*math.sin(angle),
               fill = 0, timerTillStrike = 1,
-              radius = 7, team = caster.team,
+              radius = 15, team = caster.team,
               draw = function (self)
                 love.graphics.push()
                 love.graphics.setColor(self.color)
@@ -340,15 +313,11 @@ abilitiesLibrary = {
                 self.timerTillStrike = self.timerTillStrike - dt
                 self.fill = 1 - self.timerTillStrike
                 if self.timerTillStrike <= 0 then
-                  for e, entity in pairs(entities) do
-                    if entity.team and entity.team ~= caster.team and entity.life and entity.life > 0 then
-                      if math.dist(self.x, self.y, entity.x, entity.y)<= self.radius then entity:hit(damage) end
-                    end
-                  end
+                  hitInHitbox(self, caster)
                   self.terminated = true
                 end
               end
-            })
+            }
             table.insert(entities, hitbox)
           end
         end
@@ -366,6 +335,7 @@ abilitiesLibrary = {
     maxZ = 8,
     hitboxSize = 30,
     hitboxRef = nil,
+    range = 100,
     activate = function (self, caster)
       self.active = true
       self.activeTimer = self.activationDuration
@@ -393,25 +363,7 @@ abilitiesLibrary = {
             update = function (self, dt)
               self.timeLeft = self.timeLeft - dt
               if self.timeLeft <= 0 then self.terminated = true end
-              local x, y, a, w, h = self.x, self.y, self.angle, self.width/2, self.height/2
-              local corners = {
-                {x=x + math.cos(a)*(w) - math.sin(a)*(h),y= y + math.sin(a)*(w) + math.cos(a)*(h)},
-                {x=x + math.cos(a)*(-w) - math.sin(a)*(h),y= y + math.sin(a)*(-w) + math.cos(a)*(h)},
-                {x=x + math.cos(a)*(-w) - math.sin(a)*(-h),y= y + math.sin(a)*(-w) + math.cos(a)*(-h)},
-                {x=x + math.cos(a)*(w) - math.sin(a)*(-h),y= y + math.sin(a)*(w) + math.cos(a)*(-h)},
-              }
-              for e, entity in pairs(entities) do
-                if not entity.dead and entity.team ~= self.team and entity.hit then
-                  local outside = false
-                  for i = 1, 4 do
-                    if checkIntersect(corners[i], corners[(i%4)+1], entity, {x=x, y=y}) then
-                      outside = true
-                      break
-                    end
-                  end
-                  if not outside then entity:hit() end
-                end
-              end
+              hitInHitbox(self, caster)
             end
           })
           self.hitboxRef = {x = self.hitboxRef.x + self.hitboxSize*math.cos(self.angle), y = self.hitboxRef.y + self.hitboxSize*math.sin(self.angle)}
@@ -423,8 +375,108 @@ abilitiesLibrary = {
       self.charges = self.charges - 1
       caster.z = 0
     end
+  },
+  cupcakeTrap = {
+    name = "cupcakeTrap",
+    joystickBind = 1,
+    keyboardBind = "e",
+    baseCooldown = 10,
+    activationDuration = .5,
+    hitboxSize = 5,
+    trapDuration = 30,
+    range = 80,
+    hitboxes = {},
+    activate = function (self, caster)
+      self.active = true
+      self.activeTimer = self.activationDuration
+      caster.stuck = true
+      self.angle = caster.angle
+      local trap = applyParams(newEntity(), {
+        x=caster.x, y=caster.y,
+        width = self.hitboxSize, height = self.hitboxSize,
+        timeLeft = self.trapDuration, trapDuration= self.trapDuration,
+        angle = caster.angle, color = {1, 0, 0, .5}, caster = caster, activated = false, victim = nil,
+        draw = function (self)
+          love.graphics.setColor(.7, .7, .7)
+          love.graphics.translate(self.x, self.y)
+          love.graphics.arc("line","open", 0, 0, self.width*1.5, -.5*math.pi,- 2*math.pi*(self.timeLeft/self.trapDuration)-.5*math.pi)
+          love.graphics.setColor(self.color)
+          love.graphics.rectangle("fill", -.5*self.width, -.5*self.height, self.width, self.height)
+        end,
+        update = function (self, dt)
+          self.timeLeft = self.timeLeft - dt
+          if self.timeLeft <= 0 then
+            if self.activated and self.victim then
+              self.victim.stuck = false
+            end
+            self.terminated = true
+          end
+        end,
+        collide = function (self, collider)
+          --collision dismissed if both are in the same team (default team value 0, player and allies 1, ennemies 2 or more)
+          if self.caster.team and collider.team and self.caster.team ~= collider.team then
+            self.activated = true
+            self.timeLeft = 3
+            self.collide = nil
+            self.victim = collider
+            self.victim.stuck = true
+          end
+        end
+      })
+      table.insert(entities, trap)
+      for i = #self.hitboxes, 1, -1 do
+        if self.hitboxes[i].terminated then
+          table.remove(self.hitboxes, i)
+        end
+      end
+      table.insert(self.hitboxes, trap)
+      if #self.hitboxes > 3 then
+        table.remove(self.hitboxes, 1).terminated = true
+      end
+    end,
+    deactivate = function (self, caster)
+      caster.stuck = false
+      self.charges = self.charges - 1
+      self.active = false
+    end
   }
 }
+
+function hitInHitbox(hitbox, caster, damage)
+  damage = damage or 1
+  hits = {}
+  if hitbox.width and hitbox.height then
+    local x, y, a, w, h = hitbox.x, hitbox.y, hitbox.angle, hitbox.width/2, hitbox.height/2
+    local corners = {
+      {x=x + math.cos(a)*(w) - math.sin(a)*(h),y= y + math.sin(a)*(w) + math.cos(a)*(h)},
+      {x=x + math.cos(a)*(-w) - math.sin(a)*(h),y= y + math.sin(a)*(-w) + math.cos(a)*(h)},
+      {x=x + math.cos(a)*(-w) - math.sin(a)*(-h),y= y + math.sin(a)*(-w) + math.cos(a)*(-h)},
+      {x=x + math.cos(a)*(w) - math.sin(a)*(-h),y= y + math.sin(a)*(w) + math.cos(a)*(-h)},
+    }
+    for e, entity in pairs(entities) do
+      if entity.team and entity.team ~= caster.team and entity.life and entity.life > 0 then
+        local outside = false
+        for i = 1, 4 do
+          if checkIntersect(corners[i], corners[(i%4)+1], entity, {x=x, y=y}) then
+            outside = true
+            break
+          end
+        end
+        if not outside then entity:hit(damage) end
+      end
+    end
+  elseif hitbox.radius then
+    for e, entity in pairs(entities) do
+      if entity.team and entity.team ~= caster.team and entity.life and entity.life > 0 then
+        if math.dist(hitbox.x, hitbox.y, entity.x, entity.y) <= hitbox.radius then
+          entity:hit(damage)
+          table.insert(hits, entity)
+        end
+      end
+    end
+  end
+  return hits
+end
 
 function newAbility(libraryIndex)
   local ability = {

@@ -63,5 +63,21 @@ enemiesLibrary = {
       },
       IA = basicIA()
     })
+  end,
+
+  meleeKamikaze = function ()
+    return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
+      maxSpeed= 150,
+      color = {.9, 0, .4},
+      life = 1,
+      maxLife=1,
+      width = 8,
+      height = 4,
+      abilities = {
+        cupcakeTrap = newAbility("cupcakeTrap"),
+        valkyrie = newAbility("valkyrie")
+      },
+      IA = basicIA()
+    })
   end
 }
