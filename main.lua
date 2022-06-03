@@ -83,6 +83,10 @@ function test()
   levelDisplayInit()
   start()
 
+  teamColors = {
+    {0, 0, 1, .2},
+    {1, 0, 0, .2}
+  }
   --collectibles spawn
   -- addUpdateFunction(function (dt)
   --   if collectibles < 10 and math.random()>.99 then

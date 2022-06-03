@@ -26,6 +26,8 @@ abilitiesLibrary = {
           love.graphics.rotate(self.angle)
           love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
           love.graphics.rectangle("fill", -self.width/2, -(1-self.fill)*self.height/2, self.width*(1-self.fill), (1-self.fill)*self.height)
+          love.graphics.setColor(teamColors[caster.team])
+          love.graphics.rectangle("line", -self.width*.5*1.01, -self.height*.5*1.01, self.width*1.01, self.height*1.01)
           love.graphics.pop()
         end
       }
@@ -53,7 +55,7 @@ abilitiesLibrary = {
   },
   unbreakable = {
     baseCooldown = 5,
-    range = 30,
+    range = 60,
     distanceToCaster = 10,
     activationDuration = 10,
     joystickBind = 4,
@@ -63,16 +65,22 @@ abilitiesLibrary = {
     activate = function (self, caster)
       self.activeTimer = self.activationDuration
       self.active = true
+      local x, y = caster.x+ self.distanceToCaster*math.cos(caster.angle), caster.y + self.distanceToCaster*math.sin(caster.angle)
+      local wall = {{x=0, y=0}, {x=0, y=0}}
+      table.insert(walls, wall)
       self.hitbox = applyParams(newEntity(),{
         color = {.2, .2, 1, 1},
-        x=caster.x+ self.distanceToCaster*math.cos(caster.angle), y=caster.y + self.distanceToCaster*math.sin(caster.angle),
+        x=x, y=y,
         angle = caster.angle, width = 3, height = 40, durability = 3, team = caster.team,
+        wall = wall,
         draw = function (self)
           love.graphics.push()
           love.graphics.setColor(self.color)
           love.graphics.translate(self.x, self.y)
           love.graphics.rotate(self.angle)
           love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
+          love.graphics.setColor(teamColors[caster.team])
+          love.graphics.rectangle("line", -self.width*.5*1.01, -self.height*.5*1.01, self.width*1.01, self.height*1.01)
           love.graphics.pop()
         end,
         collide = function (self, collider)
@@ -96,11 +104,20 @@ abilitiesLibrary = {
       applyParams(self.hitbox, {
         x=caster.x+ self.distanceToCaster*math.cos(self.hitbox.angle), y=caster.y + self.distanceToCaster*math.sin(self.hitbox.angle)
       })
+      self.hitbox.wall[1] = {x=self.hitbox.x - .5*self.hitbox.height*math.cos(self.hitbox.angle+.5*math.pi), y=self.hitbox.y - .5*self.hitbox.height*math.sin(self.hitbox.angle+.5*math.pi)}
+      self.hitbox.wall[2] = {x=self.hitbox.x + .5*self.hitbox.height*math.cos(self.hitbox.angle+.5*math.pi), y=self.hitbox.y + .5*self.hitbox.height*math.sin(self.hitbox.angle+.5*math.pi)}
     end,
     deactivate = function (self)
       self.active = false
       self.charges = self.charges - 1
       self.hitbox.terminated = true
+      local hitWall = self.hitbox.wall
+      for w, wall in pairs(walls) do
+        if wall == hitWall then
+          table.remove(walls, w)
+          return
+        end
+      end
     end,
     bindCheck = function ()
       return (joystick and joystick:isDown(4)) or love.keyboard.isDown("e")
@@ -130,6 +147,8 @@ abilitiesLibrary = {
           love.graphics.translate(self.x, self.y)
           love.graphics.circle("fill", 0, 0, self.radius)
           love.graphics.circle("fill", 0, 0, self.radius*self.fill)
+          love.graphics.setColor(teamColors[caster.team])
+          love.graphics.circle("line", 0, 0, self.radius*1.01)
           love.graphics.pop()
         end
       }
@@ -151,7 +170,7 @@ abilitiesLibrary = {
     end
   },
   meleeAutoHit = {
-    baseCooldown = .5,
+    baseCooldown = 1,
     damage= 1,
     range=30,
     name = "autoattack",
@@ -167,21 +186,24 @@ abilitiesLibrary = {
           distance = math.dist(caster.x, caster.y, entity.x, entity.y)
           deltaAngle = math.pi - math.abs(math.abs(angle - caster.angle) - math.pi);
           if distance <= self.range and deltaAngle < self.angleDelta then
-            self.active=true
+            self.charges = self.charges - 1
             entity:hit(self.damage)
             caster.angle = angle
             caster.speed = {x=0,y=0}
             caster.acceleration = {x=0,y=0}
             table.insert(entities, {
-              x=caster.x,
-              y=caster.y,
-              startx = caster.x,
-              starty = caster.y,
-              dest=entity,
-              timeLeft=.1,
-              travelTime = .1,
+              x=caster.x, y=caster.y,
+              startx = caster.x, starty = caster.y,
+              dest=entity, timeLeft=.1, travelTime = .1,
               color={.1,.1,.1,.4},
-              shape = "rectangle",
+              draw = function (self)
+                love.graphics.setColor(self.color)
+                love.graphics.translate(self.x, self.y)
+                love.graphics.rotate(self.angle)
+                love.graphics.rectangle("fill", -self.width*.5, -self.height*.5, self.width, self.height)
+                love.graphics.setColor(teamColors[caster.team])
+                love.graphics.rectangle("line", -self.width*.5*1.01, -self.height*.5*1.01, self.width*1.01, self.height*1.01)
+              end,
               width = 5, height = 5,
               update  = function (self, dt)
                 self.timeLeft = self.timeLeft - dt
@@ -247,12 +269,19 @@ abilitiesLibrary = {
     activate = function (self, caster)
       --spawn projectile entity
       local projectile = {
-        shape = "rectangle",
         color = {0, 0, 0},
         x=caster.x + math.cos(caster.angle)*5,
         y=caster.y + math.sin(caster.angle)*5,
         width=5, height=1, angle=caster.angle, speed = 300,
         timer = 0,
+        draw = function (self)
+          love.graphics.setColor(self.color)
+          love.graphics.translate(self.x, self.y)
+          love.graphics.rotate(self.angle)
+          love.graphics.rectangle("fill", -self.width*.5, -self.height*.5, self.width, self.height)
+          love.graphics.setColor(teamColors[caster.team])
+          love.graphics.rectangle("line", -self.width*.5*1.01, -self.height*.5*1.01, self.width*1.01, self.height*1.01)
+        end,
         update = function (self, dt)
           self.timer = self.timer + dt
           if self.timer > 4 then self.terminated = true return end
@@ -307,6 +336,8 @@ abilitiesLibrary = {
                 love.graphics.circle("fill", 0, 0, self.radius)
                 love.graphics.setColor(1, 1, 1, (self.fill-.2)/10)
                 love.graphics.circle("fill", 0, 0, self.radius*self.fill)
+                love.graphics.setColor(teamColors[caster.team])
+                love.graphics.circle("line", 0, 0, self.radius*1.01)
                 love.graphics.pop()
               end,
               update = function (self, dt)
@@ -356,7 +387,14 @@ abilitiesLibrary = {
         if math.dist(self.hitboxRef.x, self.hitboxRef.y, caster.x, caster.y) > self.hitboxSize then
           table.insert(entities, {
             x = self.hitboxRef.x + self.hitboxSize*math.cos(self.angle), y = self.hitboxRef.y + self.hitboxSize*math.sin(self.angle),
-            shape = "rectangle",
+            draw = function (self)
+              love.graphics.setColor(self.color)
+              love.graphics.translate(self.x, self.y)
+              love.graphics.rotate(self.angle)
+              love.graphics.rectangle("fill", -self.width*.5, -self.height*.5, self.width, self.height)
+              love.graphics.setColor(teamColors[caster.team])
+              love.graphics.rectangle("line", -self.width*.5*1.01, -self.height*.5*1.01, self.width*1.01, self.height*1.01)
+            end,
             angle = self.angle, width = self.hitboxSize, height = self.hitboxSize,
             color = {.7, .5, .5, .5},
             timeLeft = 5, team = caster.team,
@@ -402,6 +440,8 @@ abilitiesLibrary = {
           love.graphics.arc("line","open", 0, 0, self.width*1.5, -.5*math.pi,- 2*math.pi*(self.timeLeft/self.trapDuration)-.5*math.pi)
           love.graphics.setColor(self.color)
           love.graphics.rectangle("fill", -.5*self.width, -.5*self.height, self.width, self.height)
+          love.graphics.setColor(teamColors[caster.team])
+          love.graphics.rectangle("line", -self.width*.5*1.01, -self.height*.5*1.01, self.width*1.01, self.height*1.01)
         end,
         update = function (self, dt)
           self.timeLeft = self.timeLeft - dt

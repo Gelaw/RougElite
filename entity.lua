@@ -10,12 +10,15 @@ function newEntity()
       love.graphics.translate(self.x, self.y)
       love.graphics.rotate(self.angle)
       --shadow display
+      love.graphics.push()
+      love.graphics.rotate(-self.angle-camera.angle)
+      love.graphics.translate(0, 3+self.z)
+      love.graphics.rotate(self.angle+camera.angle)
       love.graphics.setColor(0, 0, 0, 0.1)
       love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
+      love.graphics.pop()
       --body display (flickering in case of invicibility frames)
-      love.graphics.rotate(-self.angle-camera.angle)
-      love.graphics.translate(0, -3-self.z)
-      love.graphics.rotate(self.angle+camera.angle)
+
       love.graphics.scale(1+self.z*0.3)
       if not self.invicibility or (math.floor(self.invicibility.time*20))%2~=1 then
           -- jump calculations
@@ -56,13 +59,24 @@ function movingEntityInit(entity)
       self.speed.x = math.max(-self.maxSpeed, math.min(self.speed.x, self.maxSpeed))
       self.speed.y = math.max(-self.maxSpeed, math.min(self.speed.y, self.maxSpeed))
     end
-    local newPosition = {x = self.x + self.speed.x * dt, y= self.y + self.speed.y * dt}
-    if wallCollision(self, newPosition) and not self.ignoreWalls then
-      self.speed.x = 0
-      self.speed.y = 0
-    else
+    local dx, dy = self.speed.x * dt, self.speed.y * dt
+    local newPosition = {x = self.x + dx, y= self.y + dy}
+    if self.ignoreWalls then
       self.x = newPosition.x
       self.y = newPosition.y
+    else
+      local blocked = false
+      for c, corner in pairs({{0, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}}) do
+        if wallCollision(self, {x=self.x+dx+.5*corner[1]*self.width*math.cos(self.angle)+.5*corner[2]*self.height*math.sin(self.angle), y=self.y+dy-.5*corner[1]*self.width*math.sin(self.angle)+.5*corner[2]*self.height*math.cos(self.angle)}) then
+          blocked = true
+          self.speed.x = 0
+          self.speed.y = 0
+        end
+      end
+      if not blocked then
+        self.x = newPosition.x
+        self.y = newPosition.y
+      end
     end
   end)
   return entity
