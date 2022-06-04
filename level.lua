@@ -166,6 +166,13 @@ function addWall(p1, p2, doors)
   end
 end
 
+function wallCollision(start, destination)
+  for w, wall in pairs(walls) do
+    if checkIntersect(wall[1], wall[2], start, destination) then return true, wall end
+  end
+  return false
+end
+
 function saveToFile()
   local text = "levelRooms = "
   text = text .. recursiveToString(levelRooms, "")

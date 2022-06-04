@@ -302,13 +302,6 @@ function gridSetup()
   end, 4)
 end
 
-function wallCollision(start, destination)
-  for w, wall in pairs(walls) do
-    if checkIntersect(wall[1], wall[2], start, destination) then return true end
-  end
-  return false
-end
-
 function love.joystickpressed(joystick, button)
 end
 
