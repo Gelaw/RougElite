@@ -240,7 +240,7 @@ function start()
   for e, enemy in pairs(enemiesLibrary) do
     table.insert(enemyLibKeys, e)
   end
-  math.randomseed(0)
+  math.randomseed(love.timer.getTime())
   for r, room in pairs(rooms) do
     if r == 1 then
       for i = 1, 3 do
