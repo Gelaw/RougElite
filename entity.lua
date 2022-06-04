@@ -346,10 +346,13 @@ function entitySetup(initFunctions, extraParams)
   for f, func in pairs(initFunctions) do
     entity = func(entity)
   end
+
+  if entity.maxLife then
+    entity.life = entity.maxLife
+  end
+  print(extraParams.maxLife, entity.maxLife)
   if extraParams.maxLife then
     entity.life = extraParams.maxLife
-  elseif entity.maxLife then
-    entity.life = entity.maxLife
   end
   return applyParams(entity, extraParams)
 end
