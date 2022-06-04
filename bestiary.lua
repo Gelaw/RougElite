@@ -7,7 +7,7 @@ enemiesLibrary = {
       maxSpeed= 250,
       width=10, height = 10,
       color = {.5, .4, .8},
-      life = 10,
+      maxLife = 100,
       abilities = {
         decimatingSmash = newAbility("decimatingSmash"),
         unbreakable = newAbility("unbreakable"),
@@ -21,8 +21,8 @@ enemiesLibrary = {
     return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
       maxSpeed= 400,
       color = {.8, .4, .2},
-      life = 6,
-      maxLife=6,
+      life = 60,
+      maxLife=60,
       abilities = {
         autohit = newAbility("meleeAutoHit"),
         dash = newAbility("dash"),
@@ -47,7 +47,7 @@ enemiesLibrary = {
       IA = basicIA(),
       --necessary for base collision detection to consider this entity
       team = 2,
-      life = 3+2*type, maxLife = 3+2*type,
+      maxLife = 30+20*type,
     })
   end,
 
@@ -55,8 +55,7 @@ enemiesLibrary = {
     return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
       maxSpeed= 400,
       color = {.8, 0, .8},
-      life = 3,
-      maxLife=3,
+      maxLife=30,
       abilities = {
         thunderCall = newAbility("thunderCall")
       },
@@ -68,8 +67,7 @@ enemiesLibrary = {
     return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
       maxSpeed= 150,
       color = {.9, 0, .4},
-      life = 1,
-      maxLife=1,
+      maxLife=10,
       width = 8,
       height = 4,
       abilities = {

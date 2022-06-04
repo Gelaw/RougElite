@@ -2,8 +2,8 @@ abilitiesLibrary = {
   decimatingSmash = {
     baseCooldown = 5,
     activationDuration = .5,
-    minDamage= 1,
-    maxDamage= 5,
+    minDamage= 10,
+    maxDamage= 50,
     name = "decimating smash",
     joystickBind = 2,
     keyboardBind = "a",
@@ -125,8 +125,8 @@ abilitiesLibrary = {
   },
   absoluteZero = {
     baseCooldown = 30,
-    minDamage= 2,
-    maxDamage= 10,
+    minDamage= 20,
+    maxDamage= 100,
     name = "absolute zero",
     joystickBind = 8,
     keyboardBind = "r";
@@ -171,7 +171,7 @@ abilitiesLibrary = {
   },
   meleeAutoHit = {
     baseCooldown = 1,
-    damage= 1,
+    damage= 10,
     range=30,
     name = "autoattack",
     joystickBind = 1,
@@ -266,6 +266,7 @@ abilitiesLibrary = {
     joystickBind = 3,
     keyboardBind = "e",
     baseCooldown = 1,
+    damage = 20,
     activate = function (self, caster)
       --spawn projectile entity
       local projectile = {
@@ -288,7 +289,7 @@ abilitiesLibrary = {
           self.x = self.x + math.cos(self.angle)*dt*self.speed
           self.y = self.y + math.sin(self.angle)*dt*self.speed
         end,
-        contactDamage = 2,
+        contactDamage = self.damage,
         team = caster.team,
         collide = function (self, collider)
           if self.team and collider.team and collider.team ~= self.team then
@@ -308,6 +309,7 @@ abilitiesLibrary = {
     numberOfHits = 15,
     range = 120,
     interHitTimer = 0,
+    damage = 10,
     activate = function (self, caster)
       self.hitsLeft = self.numberOfHits
       self.active = true
@@ -327,7 +329,7 @@ abilitiesLibrary = {
             local hitbox = {
               color = {.2, .2, 1, .1},
               x=caster.x + distance*math.cos(angle), y=caster.y + distance*math.sin(angle),
-              fill = 0, timerTillStrike = 1,
+              fill = 0, timerTillStrike = 1, damage= self.damage,
               radius = 15, team = caster.team,
               draw = function (self)
                 love.graphics.push()
@@ -344,7 +346,7 @@ abilitiesLibrary = {
                 self.timerTillStrike = self.timerTillStrike - dt
                 self.fill = 1 - self.timerTillStrike
                 if self.timerTillStrike <= 0 then
-                  hitInHitbox(self, caster)
+                  hitInHitbox(self, caster, self.damage)
                   self.terminated = true
                 end
               end
@@ -367,6 +369,7 @@ abilitiesLibrary = {
     hitboxSize = 30,
     hitboxRef = nil,
     range = 100,
+    damage = .1,
     activate = function (self, caster)
       self.active = true
       self.activeTimer = self.activationDuration
@@ -387,6 +390,7 @@ abilitiesLibrary = {
         if math.dist(self.hitboxRef.x, self.hitboxRef.y, caster.x, caster.y) > self.hitboxSize then
           table.insert(entities, {
             x = self.hitboxRef.x + self.hitboxSize*math.cos(self.angle), y = self.hitboxRef.y + self.hitboxSize*math.sin(self.angle),
+            damage = self.damage,
             draw = function (self)
               love.graphics.setColor(self.color)
               love.graphics.translate(self.x, self.y)
@@ -401,7 +405,7 @@ abilitiesLibrary = {
             update = function (self, dt)
               self.timeLeft = self.timeLeft - dt
               if self.timeLeft <= 0 then self.terminated = true end
-              hitInHitbox(self, caster)
+              hitInHitbox(self, caster, self.damage)
             end
           })
           self.hitboxRef = {x = self.hitboxRef.x + self.hitboxSize*math.cos(self.angle), y = self.hitboxRef.y + self.hitboxSize*math.sin(self.angle)}

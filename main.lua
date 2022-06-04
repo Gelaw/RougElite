@@ -9,6 +9,8 @@ function test()
   local joysticks = love.joystick.getJoysticks()
   if joysticks then joystick = joysticks[1] end
 
+  lifebarWidth = 30
+
   --player hud
   addDrawFunction(function()
     if not player then return end
@@ -17,13 +19,13 @@ function test()
     love.graphics.translate(-15, -15)
     if player.life then
       love.graphics.setColor(.1, .1, .2, .3)
-      love.graphics.rectangle("fill", 3, 0, 3*player.maxLife, 5)
+      love.graphics.rectangle("fill", 3, 0, lifebarWidth, 5)
       if player.life > 0 then
         love.graphics.setColor(.1, .8, .2, .7)
       else
         love.graphics.setColor(.8, .2, .1, .2)
       end
-      love.graphics.rectangle("fill", 3, 0, 3*player.life, 5)
+      love.graphics.rectangle("fill", 3, 0, lifebarWidth*math.max(player.life, 0)/player.maxLife, 5)
     end
     --dash charges display
     if player.abilities and player.abilities.dash then
@@ -241,7 +243,9 @@ function start()
     if r == 1 then
       for i = 1, 3 do
         local type = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
-        local ent = applyParams(type(), {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2, dead = true, maxLife = 20, life = 20, team = 2})
+        local ent = applyParams(type(), {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2, dead = true, team = 2})
+        print(ent.maxLife)
+        ent.maxLife = ent.maxLife * 2
         ent:onDeath()
         table.insert(entities, ent)
       end
