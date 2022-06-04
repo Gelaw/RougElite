@@ -26,6 +26,8 @@ function test()
         love.graphics.setColor(.8, .2, .1, .2)
       end
       love.graphics.rectangle("fill", 3, 0, lifebarWidth*math.max(player.life, 0)/player.maxLife, 5)
+      love.graphics.setColor(.8, .2, .1, .9)
+      love.graphics.rectangle("fill", 3+lifebarWidth*math.max(player.life, 0)/player.maxLife, 0, lifebarWidth*player.healthCutoff/player.maxLife, 5)
     end
     --dash charges display
     if player.abilities and player.abilities.dash then

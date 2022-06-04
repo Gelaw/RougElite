@@ -21,7 +21,7 @@ function newEntity()
 
       love.graphics.scale(1+self.z*0.3)
       if not self.invicibility or (math.floor(self.invicibility.time*20))%2~=1 then
-          -- jump calculations
+        -- jump calculations
         love.graphics.setColor(self.color)
         love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
         if self == player then
@@ -136,7 +136,7 @@ function livingEntityInit(entity)
     })
     self.invicibility = {time = self.invicibilityTimeAfterHit}
     self.intangible = true
-    if self.onHit then self:onHit() end
+    if self.onHit then self:onHit(quantity) end
     --death check
     if self.life <= 0 then
       self.dead = true
@@ -179,10 +179,16 @@ function playerInit(entity)
     dead = false,
     life = entity.maxLife,
     team = 1,
-    onHit = function (self)
-      cameraShake(20, .5)
+    hits = {},
+    healthCutoff = 0,
+    healthCutoffDuration = 1.5,
+    onHit = function (self, quantity)
+      table.insert(self.hits, {math.min(quantity, self.life), love.timer.getTime()})
+      self.healthCutoff = self.healthCutoff + math.min(quantity, self.life)
+      local perceivedIntensity = (quantity/self.maxLife)^2
+      cameraShake(200*perceivedIntensity, .5 )
       if joystick and joystick:isVibrationSupported() then
-        joystick:setVibration(.05, .05, .2 )
+        joystick:setVibration(perceivedIntensity, perceivedIntensity, .2 )
       end
     end,
     onDeath = function (self)
@@ -198,63 +204,74 @@ function playerInit(entity)
   })
   entity.IA = nil
   table.insert(entity.updates,
-    function (self, dt)
-      --temporary acceleration variables
-      local ax, ay = 0, 0
-      --keyboard ZQSD binds for player movement
-      if love.keyboard.isDown("z") and not love.keyboard.isDown("s") then
-        ay = -self.maxAcceleration
-      end
-      if love.keyboard.isDown("s") and not love.keyboard.isDown("z") then
-        ay = self.maxAcceleration
-      end
-      if love.keyboard.isDown("q") and not love.keyboard.isDown("d") then
-        ax = -self.maxAcceleration
-      end
-      if love.keyboard.isDown("d") and not love.keyboard.isDown("q") then
-        ax = self.maxAcceleration
-      end
-      --if gamepad is connected, use left joystick as input
-      if joystick then
-        a1, a2, a3, a4, a5, a6 = joystick:getAxes()
-        if a3 == 1 and a6 == 1 then
-          camera.angle = -player.angle - math.rad(90)
-          if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
-            if a2<-0.1 then
-              ax, ay = self.maxAcceleration*a1*0.05, self.maxAcceleration*a2
-            end
+  function (self, dt)
+    --temporary acceleration variables
+    local ax, ay = 0, 0
+    --keyboard ZQSD binds for player movement
+    if love.keyboard.isDown("z") and not love.keyboard.isDown("s") then
+      ay = -self.maxAcceleration
+    end
+    if love.keyboard.isDown("s") and not love.keyboard.isDown("z") then
+      ay = self.maxAcceleration
+    end
+    if love.keyboard.isDown("q") and not love.keyboard.isDown("d") then
+      ax = -self.maxAcceleration
+    end
+    if love.keyboard.isDown("d") and not love.keyboard.isDown("q") then
+      ax = self.maxAcceleration
+    end
+    --if gamepad is connected, use left joystick as input
+    if joystick then
+      a1, a2, a3, a4, a5, a6 = joystick:getAxes()
+      if a3 == 1 and a6 == 1 then
+        camera.angle = -player.angle - math.rad(90)
+        if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
+          if a2<-0.1 then
+            ax, ay = self.maxAcceleration*a1*0.05, self.maxAcceleration*a2
+          end
 
-          end
-        else
-          camera.angle = camera.angle + 0.01*(a3 - a6)
-          --check if joystick is outside of deadzone (TODO later: parameter 0.3 to be extrated and made modifiable once parameter norm in place)
-          if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
-            ax, ay = self.maxAcceleration*a1*math.abs(a1), self.maxAcceleration*a2*math.abs(a2)
-          end
         end
-      end
-
-      --acceleration and orientation calculations
-      local a = camera.angle
-      self.acceleration = {x=ax*math.cos(a)+ay*math.sin(a), y=ay*math.cos(a)-ax*math.sin(a)}
-      if math.abs(self.speed.x)>0 or math.abs(self.speed.y)>0 then
-        self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
-        if joystick then
-          if a3 == 1 and a6 == 1 then
-            self.angle = self.angle + a1*0.1
-          end
-        end
-      end
-
-      --camera zoom control
-      -- variables set in "cameraSetup()" method
-      if (joystick and joystick:isDown(3)) or love.keyboard.isDown("lctrl") then
-        camera.scale = math.max(camera.scale - camera.scaleChangeRate*dt, camera.minScale)
       else
-        camera.scale = math.min(camera.scale + camera.scaleChangeRate*dt, camera.maxScale)
+        camera.angle = camera.angle + 0.01*(a3 - a6)
+        --check if joystick is outside of deadzone (TODO later: parameter 0.3 to be extrated and made modifiable once parameter norm in place)
+        if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
+          ax, ay = self.maxAcceleration*a1*math.abs(a1), self.maxAcceleration*a2*math.abs(a2)
+        end
       end
     end
-  )
+
+    --acceleration and orientation calculations
+    local a = camera.angle
+    self.acceleration = {x=ax*math.cos(a)+ay*math.sin(a), y=ay*math.cos(a)-ax*math.sin(a)}
+    if math.abs(self.speed.x)>0 or math.abs(self.speed.y)>0 then
+      self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
+      if joystick then
+        if a3 == 1 and a6 == 1 then
+          self.angle = self.angle + a1*0.1
+        end
+      end
+    end
+
+    --camera zoom control
+    -- variables set in "cameraSetup()" method
+    if (joystick and joystick:isDown(3)) or love.keyboard.isDown("lctrl") then
+      camera.scale = math.max(camera.scale - camera.scaleChangeRate*dt, camera.minScale)
+    else
+      camera.scale = math.min(camera.scale + camera.scaleChangeRate*dt, camera.maxScale)
+    end
+  end)
+  table.insert(entity.updates,
+  function (self, dt)
+    local time = love.timer.getTime()
+    local hit
+    for h = #self.hits, 1, -1 do
+      hit = self.hits[h]
+      if time - hit[2] > self.healthCutoffDuration then
+        self.healthCutoff = self.healthCutoff - hit[1]
+        table.remove(self.hits, h)
+      end
+    end
+  end)
   return entity
 end
 
