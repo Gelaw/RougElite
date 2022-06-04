@@ -111,6 +111,8 @@ function livingEntityInit(entity)
   entity.onDeath = function (self)
     if self.IA then
       self.IA.task = "dead"
+      self.IA.cast = nil
+      self.IA.choice = nil
     end
     self.contactDamage = nil
     self.speed = {x=0,y=0}
