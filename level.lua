@@ -26,6 +26,7 @@ function levelDisplayInit()
     --minimap
     addDrawFunction(function ()
       love.graphics.origin()
+      love.graphics.translate(width-300, height-200)
       love.graphics.scale(.1)
       love.graphics.translate(.5*width+100, .5*height+100)
       love.graphics.setColor(.2,.2,.2)

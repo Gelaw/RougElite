@@ -11,6 +11,7 @@ function test()
 
   lifebarWidth = 30
 
+
   --player hud
   addDrawFunction(function()
     if not player then return end
@@ -168,6 +169,9 @@ function start()
   cameraSetup()
 
 
+  normalfont = love.graphics.getFont()
+  bigassfont = bigassfont or love.graphics.newFont(48)
+
 
   difficultyCoef = 1
   enemies = {}
@@ -209,8 +213,6 @@ function start()
       victoire.s = math.min(victoire.s + 1, 120)
       love.graphics.setColor(.2, .8, .4)
       local text = "Victoire"
-      local normalfont = love.graphics.getFont()
-      bigassfont = bigassfont or love.graphics.newFont(48)
       love.graphics.setFont(bigassfont)
       love.graphics.print(text, -.5*bigassfont:getWidth(text),-.5*bigassfont:getHeight())
       love.graphics.setFont(normalfont)
@@ -229,6 +231,19 @@ function start()
     love.graphics.line(-20, 20, -15, 20)
     love.graphics.line(-20, 20, -20, 15)
   end ,9)
+  addDrawFunction(function ()
+      love.graphics.origin()
+      love.graphics.setColor(.1, .1, .2, .3)
+      love.graphics.print(#enemies)
+      love.graphics.setFont(bigassfont)
+      local text = "Enemy forces:"
+      local marge = 30 + bigassfont:getWidth(text)
+      love.graphics.rectangle("fill", marge, 30, width - 2*marge, bigassfont:getHeight())
+      love.graphics.setColor(.5, .1, .1)
+      love.graphics.print(text, 30, 30)
+      love.graphics.rectangle("fill", marge, 30, (width - 2*marge)*#enemies/StartingNumberEnemies, bigassfont:getHeight())
+      love.graphics.setFont(normalfont)
+  end, 9)
 
   levelSetup()
 
@@ -259,6 +274,7 @@ function start()
       end
     end
   end
+  StartingNumberEnemies = #enemies
   safeLoadAndRun("editableScript.lua")
 end
 
