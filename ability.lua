@@ -194,6 +194,7 @@ abilitiesLibrary = {
             table.insert(entities, {
               x=caster.x, y=caster.y,
               startx = caster.x, starty = caster.y,
+              angle = caster.angle,
               dest=entity, timeLeft=.1, travelTime = .1,
               color={.1,.1,.1,.4},
               draw = function (self)
