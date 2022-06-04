@@ -60,14 +60,17 @@ function movingEntityInit(entity)
       self.speed.y = math.max(-self.maxSpeed, math.min(self.speed.y, self.maxSpeed))
     end
     local dx, dy = self.speed.x * dt, self.speed.y * dt
+    local points = getPointsGlobalCoor(self)
     local newPosition = {x = self.x + dx, y= self.y + dy}
     if self.ignoreWalls then
       self.x = newPosition.x
       self.y = newPosition.y
     else
       local blocked = false
-      for c, corner in pairs({{0, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}}) do
-        if wallCollision(self, {x=self.x+dx+.5*corner[1]*self.width*math.cos(self.angle)+.5*corner[2]*self.height*math.sin(self.angle), y=self.y+dy-.5*corner[1]*self.width*math.sin(self.angle)+.5*corner[2]*self.height*math.cos(self.angle)}) then
+      local check, blockingWall
+      for p, point in pairs(points) do
+        check, blockingWall = wallCollision(point, {x=point.x+dx, y=point.y+dy})
+        if check then
           blocked = true
           self.speed.x = 0
           self.speed.y = 0
@@ -76,6 +79,20 @@ function movingEntityInit(entity)
       if not blocked then
         self.x = newPosition.x
         self.y = newPosition.y
+      end
+    end
+    for w, wall in pairs(walls) do
+      local blockedInWall = false
+      for p2 = 1, 4 do
+        if checkIntersect(wall[1], wall[2], points[p2], points[p2%4+1]) then
+          blockedInWall = true
+        end
+      end
+      if blockedInWall then
+        local wallMidpoint = {x = (wall[1].x+wall[2].x)/2, y = (wall[1].y+wall[2].y)/2}
+        local angle = math.angle(wallMidpoint.x, wallMidpoint.y, self.x, self.y)
+        self.x = self.x + math.cos(angle)
+        self.y = self.y + math.sin(angle)
       end
     end
   end)
