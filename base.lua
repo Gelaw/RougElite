@@ -359,3 +359,13 @@ function findIntersect(l1p1x,l1p1y, l1p2x,l1p2y, l2p1x,l2p1y, l2p2x,l2p2y, seg1,
   end
   return x,y
 end
+
+function get_closest_point(x1,y1, x2,y2, a,b)
+    if x1==x2 then return {x1,b} end
+    if y1==y2 then return {a,y1} end
+    m1 = (y2-y1)/(x2-x1)
+    m2 = -1/m1
+    x = (m1*x1-m2*a+b-y1) / (m1-m2)
+    y = m2*(x-a)+b
+    return {x,y}
+end

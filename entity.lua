@@ -89,8 +89,8 @@ function movingEntityInit(entity)
         end
       end
       if blockedInWall then
-        local wallMidpoint = {x = (wall[1].x+wall[2].x)/2, y = (wall[1].y+wall[2].y)/2}
-        local angle = math.angle(wallMidpoint.x, wallMidpoint.y, self.x, self.y)
+        p = get_closest_point(wall[1].x, wall[2].y, wall[2].x, wall[2].y, self.x, self.y)
+        local angle = math.angle(p[1], p[2], self.x, self.y)
         self.x = self.x + math.cos(angle)
         self.y = self.y + math.sin(angle)
       end
