@@ -186,34 +186,36 @@ abilitiesLibrary = {
           distance = math.dist(caster.x, caster.y, entity.x, entity.y)
           deltaAngle = math.pi - math.abs(math.abs(angle - caster.angle) - math.pi);
           if distance <= self.range and deltaAngle < self.angleDelta then
-            self.charges = self.charges - 1
-            entity:hit(self.damage)
-            caster.angle = angle
-            caster.speed = {x=0,y=0}
-            caster.acceleration = {x=0,y=0}
-            table.insert(entities, {
-              x=caster.x, y=caster.y,
-              startx = caster.x, starty = caster.y,
-              angle = caster.angle,
-              dest=entity, timeLeft=.1, travelTime = .1,
-              color={.1,.1,.1,.4},
-              draw = function (self)
-                love.graphics.setColor(self.color)
-                love.graphics.translate(self.x, self.y)
-                love.graphics.rotate(self.angle)
-                love.graphics.rectangle("fill", -self.width*.5, -self.height*.5, self.width, self.height)
-                love.graphics.setColor(teamColors[caster.team])
-                love.graphics.rectangle("line", -self.width*.5*1.01, -self.height*.5*1.01, self.width*1.01, self.height*1.01)
-              end,
-              width = 5, height = 5,
-              update  = function (self, dt)
-                self.timeLeft = self.timeLeft - dt
-                self.x = self.dest.x + (self.timeLeft/self.travelTime)*(self.startx-self.dest.x)
-                self.y = self.dest.y + (self.timeLeft/self.travelTime)*(self.starty-self.dest.y)
-                if self.timeLeft <=0 then self.terminated = true end
-              end
-            })
-            return
+            if not wallCollision(caster, entity) then
+              self.charges = self.charges - 1
+              entity:hit(self.damage)
+              caster.angle = angle
+              caster.speed = {x=0,y=0}
+              caster.acceleration = {x=0,y=0}
+              table.insert(entities, {
+                x=caster.x, y=caster.y,
+                startx = caster.x, starty = caster.y,
+                angle = caster.angle,
+                dest=entity, timeLeft=.1, travelTime = .1,
+                color={.1,.1,.1,.4},
+                draw = function (self)
+                  love.graphics.setColor(self.color)
+                  love.graphics.translate(self.x, self.y)
+                  love.graphics.rotate(self.angle)
+                  love.graphics.rectangle("fill", -self.width*.5, -self.height*.5, self.width, self.height)
+                  love.graphics.setColor(teamColors[caster.team])
+                  love.graphics.rectangle("line", -self.width*.5*1.01, -self.height*.5*1.01, self.width*1.01, self.height*1.01)
+                end,
+                width = 5, height = 5,
+                update  = function (self, dt)
+                  self.timeLeft = self.timeLeft - dt
+                  self.x = self.dest.x + (self.timeLeft/self.travelTime)*(self.startx-self.dest.x)
+                  self.y = self.dest.y + (self.timeLeft/self.travelTime)*(self.starty-self.dest.y)
+                  if self.timeLeft <=0 then self.terminated = true end
+                end
+              })
+              return
+            end
           end
         end
       end
