@@ -234,16 +234,44 @@ abilitiesLibrary = {
       self.angle = caster.angle
       self.activeTimer = self.activationDuration
       self.active = true
-      caster.ignoreWalls = true
     end,
     activeUpdate = function (self, dt, caster)
       self.activeTimer = self.activeTimer - dt
-      local newPosition = {x = caster.x + math.cos(self.angle)*200 * dt, y= caster.y + math.sin(self.angle)*200 * dt}
-      if wallCollision(caster, newPosition) and not self.ignoreWalls then
-        self:deactivate(caster)
-      else
+      local dx, dy = 200 * math.cos(self.angle), 200 * math.sin(self.angle)
+      local points = getPointsGlobalCoor(caster)
+      local newPosition = {x = caster.x + dx, y= caster.y + dy}
+      if caster.ignoreWalls then
         caster.x = newPosition.x
         caster.y = newPosition.y
+      else
+        local blocked = false
+        local check, blockingWall
+        for p, point in pairs(points) do
+          check, blockingWall = wallCollision(point, {x=point.x+dx, y=point.y+dy})
+          if check then
+            blocked = true
+            caster.speed.x = 0
+            caster.speed.y = 0
+          end
+        end
+        if not blocked then
+          caster.x = newPosition.x
+          caster.y = newPosition.y
+        end
+      end
+      for w, wall in pairs(walls) do
+        local blockedInWall = false
+        for p2 = 1, 4 do
+          if checkIntersect(wall[1], wall[2], points[p2], points[p2%4+1]) then
+            blockedInWall = true
+          end
+        end
+        if blockedInWall then
+          p = get_closest_point(wall[1].x, wall[2].y, wall[2].x, wall[2].y, caster.x, caster.y)
+          local angle = math.angle(p[1], p[2], caster.x, caster.y)
+          caster.x = caster.x + 3*math.cos(angle)
+          caster.y = caster.y + 3*math.sin(angle)
+        end
       end
     end,
     deactivate = function (self, caster)
