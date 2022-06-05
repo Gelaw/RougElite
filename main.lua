@@ -268,7 +268,7 @@ function start()
     else
       local type = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
       for i = 1, math.random(5) do
-        local enemy = applyParams(type(), {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2, maxLife = 5, life = 5})
+        local enemy = applyParams(type(), {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2})
         table.insert(entities, enemy)
         table.insert(enemies, enemy)
       end
