@@ -247,6 +247,12 @@ function playerInit(entity)
         end
       end
     end
+    if love.mouse.isDown(1) then
+      mx, my = love.mouse.getPosition()
+      angle = math.angle(.5*width, .5*height, mx, my)
+      q = math.min(1, math.dist(.5*width, .5*height, mx, my)/100)
+      ax, ay = q*self.maxAcceleration * math.cos(angle), q*self.maxAcceleration * math.sin(angle)
+    end
 
     --acceleration and orientation calculations
     local a = camera.angle
@@ -315,6 +321,12 @@ function newGhost(params)
       end
       if love.keyboard.isDown("d") and not love.keyboard.isDown("q") then
         ax = self.maxAcceleration
+      end
+      if love.mouse.isDown(1) then
+        mx, my = love.mouse.getPosition()
+        angle = math.angle(.5*width, .5*height, mx, my)
+        q = math.min(1, math.dist(.5*width, .5*height, mx, my)/100)
+        ax, ay = q*self.maxAcceleration * math.cos(angle), q*self.maxAcceleration * math.sin(angle)
       end
       --speed, position and orientation calculations
       local a = camera.angle
