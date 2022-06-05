@@ -159,10 +159,7 @@ function getPointsGlobalCoor(entity)
 end
 
 function init()
-  modes = love.window.getFullscreenModes(1)
-  table.sort(modes, function(a, b) return a.width*a.height < b.width*b.height end)   -- sort from smallest to largest
-  mode = modes[#modes]
-  love.window.setMode(mode.width, mode.height)
+  love.window.setMode(0, 0)
   width  = love.graphics.getWidth()
   height = love.graphics.getHeight()
   love.graphics.setFont(love.graphics.newFont(11))

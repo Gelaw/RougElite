@@ -28,6 +28,9 @@ function recurPrint(table, tab)
 end
 
 function love.keypressed(key, scancode, isrepeat)
+  if key == "escape" then
+    love.event.quit()
+  end
   if key == "g" then
     generateWalls()
   end

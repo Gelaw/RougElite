@@ -247,11 +247,16 @@ function playerInit(entity)
         end
       end
     end
+    mx, my = love.mouse.getPosition()
+    angle = math.angle(.5*width, .5*height, mx, my)
+    distance = math.dist(.5*width, .5*height, mx, my)
     if love.mouse.isDown(1) then
-      mx, my = love.mouse.getPosition()
-      angle = math.angle(.5*width, .5*height, mx, my)
-      q = math.min(1, math.dist(.5*width, .5*height, mx, my)/100)
+      q = math.min(1, distance/100)
       ax, ay = q*self.maxAcceleration * math.cos(angle), q*self.maxAcceleration * math.sin(angle)
+    elseif not self.stuck and math.abs(self.speed.x) < 5 and math.abs(self.speed.y) < 5 then
+      self.speed = {x=0, y=0}
+      self.acceleration = {x=0, y=0}
+      self.angle = angle
     end
 
     --acceleration and orientation calculations
@@ -297,7 +302,7 @@ function newGhost(params)
     color = {.3, .3, 1},
     speed={x=0, y=0},
     speedDrag= 0.9,
-    maxAcceleration = 3000,
+    maxAcceleration = 2000,
     update = function (self,  dt)
       --temporary acceleration variables
       local ax, ay = 0, 0
