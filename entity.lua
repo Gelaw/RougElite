@@ -175,6 +175,12 @@ end
 function playerInit(entity)
   local entity = entity or newEntity()
 
+  for e, enemy in pairs(enemies) do
+    if enemy == entity then
+      table.remove(enemies, e)
+      break
+    end
+  end
   --used in base camera.update()
   camera.mode = {"follow", entity}
   applyParams(entity, {
@@ -329,6 +335,7 @@ function newGhost(params)
         self.collide = nil
         --take control of the enemy
         player = playerInit(collider)
+        ghost = nil
         camera.mode = {"follow", player}
       end
     end
@@ -350,7 +357,6 @@ function entitySetup(initFunctions, extraParams)
   if entity.maxLife then
     entity.life = entity.maxLife
   end
-  print(extraParams.maxLife, entity.maxLife)
   if extraParams.maxLife then
     entity.life = extraParams.maxLife
   end

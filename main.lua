@@ -14,42 +14,67 @@ function test()
 
   --player hud
   addDrawFunction(function()
-    if not player then return end
-    --lifebar display
-    love.graphics.translate(player.x, player.y)
-    love.graphics.translate(-15, -15)
-    if player.life then
-      love.graphics.setColor(.1, .1, .2, .3)
-      love.graphics.rectangle("fill", 3, 0, lifebarWidth, 5)
-      if player.life > 0 then
-        love.graphics.setColor(.1, .8, .2, .7)
-      else
-        love.graphics.setColor(.8, .2, .1, .2)
-      end
-      love.graphics.rectangle("fill", 3, 0, lifebarWidth*math.max(player.life, 0)/player.maxLife, 5)
-      love.graphics.setColor(.8, .2, .1, .9)
-      love.graphics.rectangle("fill", 3+lifebarWidth*math.max(player.life, 0)/player.maxLife, 0, lifebarWidth*player.healthCutoff/player.maxLife, 5)
-    end
-    --dash charges display
-    if player.abilities and player.abilities.dash then
-      for i = 1, player.abilities.dash.maxCharges do
-        if player.abilities.dash.charges < i then
-          love.graphics.setColor(.1, .1, .2, .3)
+    if player then
+      --lifebar display
+      love.graphics.push()
+      love.graphics.translate(player.x, player.y)
+      love.graphics.translate(-15, -15)
+      if player.life then
+        love.graphics.setColor(.1, .1, .2, .3)
+        love.graphics.rectangle("fill", 3, 0, lifebarWidth, 5)
+        if player.life > 0 then
+          love.graphics.setColor(.1, .8, .2, .7)
         else
-          love.graphics.setColor(0, .3, .9)
+          love.graphics.setColor(.8, .2, .1, .2)
         end
-        love.graphics.circle("fill", 4+10*(i-1), 5, 3)
-        if player.abilities.dash.charges == i - 1 then
-          love.graphics.setColor(0, .3, .9)
-          love.graphics.arc("fill", 4+10*(i-1), 5, 3, -math.pi/2+ 2*math.pi*(1-player.abilities.dash.cooldown/player.abilities.dash.baseCooldown), -math.pi/2)
+        love.graphics.rectangle("fill", 3, 0, lifebarWidth*math.max(player.life, 0)/player.maxLife, 5)
+        love.graphics.setColor(.8, .2, .1, .9)
+        love.graphics.rectangle("fill", 3+lifebarWidth*math.max(player.life, 0)/player.maxLife, 0, lifebarWidth*player.healthCutoff/player.maxLife, 5)
+      end
+      --dash charges display
+      if player.abilities and player.abilities.dash then
+        for i = 1, player.abilities.dash.maxCharges do
+          if player.abilities.dash.charges < i then
+            love.graphics.setColor(.1, .1, .2, .3)
+          else
+            love.graphics.setColor(0, .3, .9)
+          end
+          love.graphics.circle("fill", 4+10*(i-1), 5, 3)
+          if player.abilities.dash.charges == i - 1 then
+            love.graphics.setColor(0, .3, .9)
+            love.graphics.arc("fill", 4+10*(i-1), 5, 3, -math.pi/2+ 2*math.pi*(1-player.abilities.dash.cooldown/player.abilities.dash.baseCooldown), -math.pi/2)
+          end
+        end
+      end
+      --position display
+      love.graphics.translate(8, 30)
+      love.graphics.scale(.2)
+      love.graphics.setColor(0, 0, 0)
+      love.graphics.print(math.floor(player.x) .."\t"..math.floor(player.y))
+      love.graphics.pop()
+    end
+    if ghost then
+      love.graphics.translate(ghost.x, ghost.y)
+      love.graphics.setColor(1, 1, 1, .2)
+      for e, entity in pairs(entities) do
+        if entity.team and entity.team > 1 and entity.dead and entity.collide then
+          local angle = math.angle(ghost.x, ghost.y, entity.x, entity.y)
+          local distance = math.dist(ghost.x, ghost.y, entity.x, entity.y)
+          love.graphics.push()
+          if entity.archetypeName then
+            love.graphics.print(entity.archetypeName, entity.x-camera.x-.5*normalfont:getWidth(entity.archetypeName), entity.y-camera.y-15)
+          end
+          love.graphics.rotate(angle)
+          love.graphics.arc("line", "open", distance, 0, 20, math.rad(15), 2*math.pi/3 - math.rad(15))
+          love.graphics.arc("line", "open", distance, 0, 20, 2*math.pi/3 + math.rad(15), 4*math.pi/3 - math.rad(15))
+          love.graphics.arc("line", "open", distance, 0, 20, 4*math.pi/3 + math.rad(15), 2*math.pi - math.rad(15))
+
+          love.graphics.translate((math.min(distance/100, .9)+.1)*50, 0)
+          love.graphics.polygon("fill", 0, 0, -10, 3, -10, -3)
+          love.graphics.pop()
         end
       end
     end
-    --position display
-    love.graphics.translate(8, 30)
-    love.graphics.scale(.2)
-    love.graphics.setColor(0, 0, 0)
-    love.graphics.print(math.floor(player.x) .."\t"..math.floor(player.y))
   end, 8)
   --abilities hud
   addDrawFunction( function ()
