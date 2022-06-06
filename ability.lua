@@ -317,8 +317,28 @@ abilitiesLibrary = {
         update = function (self, dt)
           self.timer = self.timer + dt
           if self.timer > 4 then self.terminated = true return end
-          self.x = self.x + math.cos(self.angle)*dt*self.speed
-          self.y = self.y + math.sin(self.angle)*dt*self.speed
+          local newPosition = {x=self.x + math.cos(self.angle)*dt*self.speed, y=self.y + math.sin(self.angle)*dt*self.speed}
+          if wallCollision(self, newPosition) then
+            self.terminated = true
+            table.insert(particuleEffects, {
+              x = self.x, y =self.y,
+              timeLeft = .4,
+              draw = function (self)
+                love.graphics.translate(self.x, self.y)
+                love.graphics.setColor(1, 1, 1, .4)
+                for i = 1, 6 do
+                  love.graphics.push()
+                  love.graphics.rotate(i*math.pi/3)
+                  love.graphics.rectangle("fill", (1-self.timeLeft/.4)*5, 0, 5, 2)
+                  love.graphics.pop()
+                end
+              end,
+
+            })
+          else
+            self.x = self.x + math.cos(self.angle)*dt*self.speed
+            self.y = self.y + math.sin(self.angle)*dt*self.speed
+          end
         end,
         contactDamage = self.damage,
         team = caster.team,

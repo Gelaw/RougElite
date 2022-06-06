@@ -186,6 +186,62 @@ function test()
       self.shear = {x=self.shear.x+.01*(math.random()-.5), y=self.shear.y+.01*(math.random()-.5)}
     end
   })
+  invocationCircle = {
+    x= 0, y = 0,
+    outerRadius = 15,
+    innerRadius = 15,
+    angleCuts = 5,
+    shapeAngle = math.random()*2*math.pi,
+    a = 0,
+    color = {0, .5, .8, 1},
+    hidden = true,
+    draw = function (self)
+      if self.hidden then return end
+      love.graphics.translate(self.x, self.y)
+      local pi = math.pi
+      love.graphics.rotate(-.5*pi+self.shapeAngle)
+      love.graphics.setColor(self.color)
+      love.graphics.arc("line", "open", 0, 0, self.outerRadius, 0, self.a)
+      love.graphics.arc("line", "open", 0, 0,  self.innerRadius, 0, self.a)
+      for i = 1, self.angleCuts do
+        angle1 = (i-1)*(2*pi)/self.angleCuts
+        angle2 = i*(2*pi)/self.angleCuts
+        if self.a > angle1 then
+          p1 = {self.outerRadius*math.cos(angle1), self.outerRadius*math.sin(angle1)}
+          p2 = {self.outerRadius*math.cos(math.pi*4/self.angleCuts+angle2), self.outerRadius*math.sin(math.pi*4/self.angleCuts+angle2)}
+          ratio = math.min(1, (self.a - angle1)/(angle2 - angle1))
+          dist = math.dist(p1[1], p1[2], p2[1], p2[2])*ratio
+          angle = math.angle(p1[1], p1[2], p2[1], p2[2])
+          love.graphics.line(p1[1], p1[2], p1[1]+dist*math.cos(angle), p1[2]+dist*math.sin(angle))
+          -- love.graphics.line(p1[1], p1[2], p2[1], p2[2])
+        end
+      end
+    end,
+    update = function (self, dt)
+      dt = 3*dt
+      if self.a < 2*math.pi then
+        self.a = self.a + 6*dt
+        self.outerRadius= self.outerRadius - dt
+      else
+        self.outerRadius = self.outerRadius + 5*dt
+        r = (math.random()-.5)*.1
+        self.color[1], self.color[2], self.color[3] = self.color[1] + r, self.color[2]+ r, self.color[3]+ r
+        self.color[4] = self.color[4] - dt
+        if self.color[4] <= 0 then self.hidden = true end
+      end
+    end,
+    moveTo = function (self, x, y)
+      self.x = x
+      self.y = y
+      -- self.angleCuts = 0
+      self.outerRadius = self.innerRadius
+      self.shapeAngle = math.random()*2*math.pi
+      self.a = 0
+      self.color = {0, .5, .8, 1}
+      self.hidden = false
+    end
+  }
+  table.insert(entities, invocationCircle)
 end
 
 function start()
@@ -194,8 +250,8 @@ function start()
   cameraSetup()
 
 
-  normalfont = love.graphics.getFont()
-  bigassfont = bigassfont or love.graphics.newFont(48)
+  normalfont = love.graphics.newFont(12)
+  bigassfont = love.graphics.newFont(48)
 
 
   difficultyCoef = 1
@@ -373,5 +429,5 @@ function love.keypressed(key, scancode, isrepeat)
 end
 
 function love.wheelmoved(x, y)
-  camera.angle = camera.angle + y*0.1
+  -- camera.angle = camera.angle + y*0.1
 end

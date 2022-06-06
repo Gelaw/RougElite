@@ -51,6 +51,10 @@ function levelDisplayInit()
         love.graphics.setColor(ghost.color)
         love.graphics.rectangle("fill", ghost.x, ghost.y, math.max(ghost.width, 30), math.max(ghost.height, 30))
       end
+      if not invocationCircle.hidden then
+        love.graphics.setColor(invocationCircle.color)
+        love.graphics.circle("fill", invocationCircle.x, invocationCircle.y, 30)
+      end
     end,9)
 end
 

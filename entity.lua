@@ -25,7 +25,7 @@ function newEntity()
         love.graphics.setColor(self.color)
         love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
         if self == player then
-          love.graphics.setColor(0, .5, .8, .5)
+          love.graphics.setColor(0, .5, .8, .8)
           love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
         end
       end
@@ -347,6 +347,7 @@ function newGhost(params)
     end,
     collide = function (self, collider)
       if collider.team and collider.team > 1 and collider.dead then
+        if invocationCircle then invocationCircle:moveTo(collider.x, collider.y) end
         --kill the ghost
         self.terminated = true
         self.collide = nil
