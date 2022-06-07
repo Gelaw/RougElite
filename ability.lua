@@ -365,8 +365,20 @@ abilitiesLibrary = {
       self.hitsLeft = self.numberOfHits
       self.active = true
       self.interHitTimer = 0
+      self.hitbox = {x=caster.x, y=caster.y, angle = caster.angle, radius = self.range,
+        draw = function ( self)
+            love.graphics.translate(self.x, self.y)
+            love.graphics.setColor(1, 1, 1, .05)
+            love.graphics.arc("line", "open", 0, 0,    self.radius, self.angle-.25*math.pi, self.angle+.25*math.pi)
+            love.graphics.arc("line", "open", 0, 0, self.radius*.3, self.angle-.25*math.pi, self.angle+.25*math.pi)
+            love.graphics.line(self.radius*math.cos(self.angle-.25*math.pi), self.radius*math.sin(self.angle-.25*math.pi), .3*self.radius*math.cos(self.angle-.25*math.pi), .3*self.radius*math.sin(self.angle-.25*math.pi))
+            love.graphics.line(self.radius*math.cos(self.angle+.25*math.pi), self.radius*math.sin(self.angle+.25*math.pi), .3*self.radius*math.cos(self.angle+.25*math.pi), .3*self.radius*math.sin(self.angle+.25*math.pi))
+        end
+      }
+      table.insert(entities, self.hitbox)
     end,
     activeUpdate = function (self, dt, caster)
+      self.hitbox.x, self.hitbox.y, self.hitbox.angle = caster.x, caster.y, caster.angle
       if caster.dead then self:deactivate(caster) end
       if self.hitsLeft > 0 then
         self.interHitTimer = self.interHitTimer - dt
@@ -375,7 +387,7 @@ abilitiesLibrary = {
           local hits = math.random()*.25*self.hitsLeft + 1
           for i = 1, hits do
             self.hitsLeft = self.hitsLeft - 1
-            local angle = caster.angle + (math.random()-.5)* .5*math.pi
+            local angle = caster.angle + (math.random()-.5)* .25*math.pi
             local distance = (.7*math.random()^1.15+.3)*self.range
             local hitbox = {
               color = {.2, .2, 1, .1},
@@ -408,6 +420,11 @@ abilitiesLibrary = {
       else
         self:deactivate(caster)
       end
+    end,
+    deactivate = function (self)
+      self.active = false
+      self.charges = self.charges - 1
+      self.hitbox.terminated = true
     end
   },
   valkyrie = {
