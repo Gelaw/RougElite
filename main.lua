@@ -377,9 +377,9 @@ end
 
 --variables used in player update
 function cameraSetup()
-  camera.scale = 2
-  camera.maxScale = 4
-  camera.minScale = 2
+  camera.scale = 1
+  camera.maxScale = 2
+  camera.minScale = 1
   camera.scaleChangeRate = 2
 end
 -- run once at launch to create basic background grid for ease of localisation

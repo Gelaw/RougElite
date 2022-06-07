@@ -88,7 +88,7 @@ function basicIA()
         entity.angle = math.random()*2*math.pi
         local accQ = math.min(math.random() * ia.difficultyCoef, 1)
         entity.acceleration = {x=accQ*entity.maxAcceleration*math.cos(entity.angle), y=accQ*entity.maxAcceleration*math.sin(entity.angle)}
-        self.timer = .3 * ia.difficultyCoef
+        self.timer = .3 * math.min(ia.difficultyCoef, 1)
       end,
       update = function (self, ia, entity, dt)
         self.timer = self.timer - dt
