@@ -237,7 +237,7 @@ abilitiesLibrary = {
     end,
     activeUpdate = function (self, dt, caster)
       self.activeTimer = self.activeTimer - dt
-      local dx, dy = 200 * math.cos(self.angle), 200 * math.sin(self.angle)
+      local dx, dy = dt*200 * math.cos(self.angle), dt*200 * math.sin(self.angle)
       local points = getPointsGlobalCoor(caster)
       local newPosition = {x = caster.x + dx, y= caster.y + dy}
       if caster.ignoreWalls then
