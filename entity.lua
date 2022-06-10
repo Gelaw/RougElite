@@ -91,8 +91,8 @@ function movingEntityInit(entity)
       if blockedInWall then
         p = get_closest_point(wall[1].x, wall[2].y, wall[2].x, wall[2].y, self.x, self.y)
         local angle = math.angle(p[1], p[2], self.x, self.y)
-        self.x = self.x + 3*math.cos(angle)
-        self.y = self.y + 3*math.sin(angle)
+        self.x = self.x + math.cos(angle)
+        self.y = self.y + math.sin(angle)
       end
     end
   end)
