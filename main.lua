@@ -115,7 +115,8 @@ function test()
 
   teamColors = {
     {0, 0, 1, .2},
-    {1, 0, 0, .2}
+    {1, 0, 0, .2},
+    {0, 1, 0, .2}
   }
   --collectibles spawn
   -- addUpdateFunction(function (dt)
@@ -347,9 +348,9 @@ function start()
         table.insert(entities, ent)
       end
     else
-      local type = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
-      for i = 1, math.random(5) do
-        local enemy = applyParams(type(), {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2})
+      for i = 1, 3 do
+        local type = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
+        local enemy = applyParams(type(), {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = math.random(1, 2)})
         table.insert(entities, enemy)
         table.insert(enemies, enemy)
       end

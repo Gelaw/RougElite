@@ -20,27 +20,37 @@ end
 function basicIA()
   return applyParams(newIA(), {
     difficultyCoef = 1,
-    task = "unstarted", aggroRange = 300,
+    task = "unstarted", aggroRange = 1300,
+    target = nil,
     unstarted = applyParams(newTask(), {
       update = function (self, ia, entity)
-        if not (player and not player.dead and player.x>-width/2 and player.x < width/2 and player.y>-height/2 and player.y<height/2 )then return end
-        ia:switchToTask("idle")
+        if ia.target and not ia.target.dead then
+          ia:switchToTask("idle")
+          return
+        end
       end
     }),
     idle = applyParams(newTask(), {
       update = function (self, ia, entity)
-        if not player or player.dead then return end
-        if math.dist(entity.x, entity.y, player.x, player.y) < ia.aggroRange and math.random()*ia.difficultyCoef > .99 then
-          --turn toward player
-          entity.angle = math.angle(entity.x, entity.y, player.x, player.y)
+        if not ia.target or ia.target.dead then
+          ia:switchToTask("unstarted")
+          return
+        end
+        if math.dist(entity.x, entity.y, ia.target.x, ia.target.y) < ia.aggroRange and math.random()*ia.difficultyCoef > .99 then
+          --turn toward ia.target
+          entity.angle = math.angle(entity.x, entity.y, ia.target.x, ia.target.y)
           ia:switchToTask("decision")
         end
       end
     }),
     decision = applyParams(newTask(), {
       update = function (self, ia, entity)
-        local distance = math.dist(entity.x, entity.y, player.x, player.y)
-        if not player or not player.life or player.dead or distance > ia.aggroRange or math.random()*ia.difficultyCoef > .5 then
+        if not ia.target then
+          ia:switchToTask("idle")
+          return
+        end
+        local distance = math.dist(entity.x, entity.y, ia.target.x, ia.target.y)
+        if not ia.target.life or ia.target.dead or distance > ia.aggroRange or math.random()*ia.difficultyCoef > .5 then
           ia:switchToTask("idle")
           return
         end
@@ -61,16 +71,17 @@ function basicIA()
       end
     }),
     attack = applyParams(newTask(), {
-      start = function (self, ia, entity)
-        entity.angle = math.angle(entity.x, entity.y, player.x, player.y)
-      end,
       update = function (self, ia, entity)
+        if not ia.target then
+          ia:switchToTask("idle")
+          return
+        end
         if entity.abilities[ia.choice].cooldown > 0 then
           ia:switchToTask("decision")
           return
         end
-        entity.angle = math.angle(entity.x, entity.y, player.x, player.y)
-        local distance = math.dist(entity.x, entity.y, player.x, player.y)
+        entity.angle = math.angle(entity.x, entity.y, ia.target.x, ia.target.y)
+        local distance = math.dist(entity.x, entity.y, ia.target.x, ia.target.y)
         if distance > entity.abilities[ia.choice].range then
           entity.acceleration = {x=entity.maxAcceleration*math.cos(entity.angle), y=entity.maxAcceleration*math.sin(entity.angle)}
         else
@@ -114,3 +125,34 @@ function IAinit(entity)
     end)
   return entity
 end
+
+interIATUtick = 3
+local IATUtimer = 0
+function IAtargetingUpdate(dt)
+  IATUtimer = IATUtimer - dt
+  if IATUtimer < 0 then
+    IATUtimer = interIATUtick
+    for e, entity in pairs(entities) do
+      if entity.IA then
+        entity.IA.target = nil
+        if not entity.dead then
+          for e2, entity2 in pairs(entities) do
+            local distance = math.dist(entity.x, entity.y, entity2.x, entity2.y)
+            if entity2.team and entity.team ~= entity2.team and not entity2.dead then
+              if not entity.IA.target or entity.IA.distTotarget>distance then
+                entity.IA.target = entity2
+                entity.IA.distTotarget = distance
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end
+addUpdateFunction(IAtargetingUpdate)
+addDrawFunction(function ()
+  love.graphics.origin()
+  love.graphics.setColor(0, 0, 0)
+  love.graphics.arc("line", "open", 45, 45, 30, -.5*math.pi, math.pi*(2*IATUtimer/interIATUtick-.5))
+end, 8)
