@@ -33,7 +33,7 @@ function newEntity()
         love.graphics.rotate(-(self.angle+camera.angle))
         if self.IA.target then
           local angle = math.angle(self.x, self.y, self.IA.target.x, self.IA.target.y)
-          love.graphics.line(0, 0, 30*math.cos(angle), 30*math.sin(angle))
+          love.graphics.line(0, 0, 5*math.cos(angle), 5*math.sin(angle))
         end
         love.graphics.setColor( 0, 0, 0)
         love.graphics.print(self.team.."\t"..self.IA.task)

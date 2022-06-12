@@ -552,6 +552,72 @@ abilitiesLibrary = {
       self.charges = self.charges - 1
       self.active = false
     end
+  },
+  arc = {
+    name = "arc",
+    joystickBind = 1,
+    keyboardBind = "r",
+    baseCooldown = 3,
+    activationDuration = .1,
+    chainLenght = 120,
+    chainNumber = 7,
+    damage= 10,
+    range = 240,
+    activate = function (self, caster)
+      local distance = 0
+      local firstHit = nil
+      local hits = {}
+      local start = {x = caster.x, y = caster.y}
+      local range = self.range
+      local chainCount = 0
+      local lastHit = nil
+      repeat
+        lastHit = nil
+        for e, entity in pairs(entities) do
+          if entity.team and entity.team ~= caster.team and entity.life and not entity.dead then
+            local alreadyHit = false
+            for h, hit in pairs(hits) do
+              if hit == entity then
+                alreadyHit = true
+                break
+              end
+            end
+            if not alreadyHit then
+              distance = math.dist(start.x, start.y, entity.x, entity.y)
+              if distance <= range then
+                if not wallCollision(start, entity) then
+                  table.insert(hits, entity)
+                  firstHit = firstHit or entity
+                  lastHit = entity
+                  entity:hit(self.damage)
+                  table.insert(particuleEffects, {
+                    x=caster.x, y=caster.y,
+                    p1 = start, p2 = entity, timeLeft=.1,
+                    color={1,1,0, 1},
+                    draw = function (self)
+                      love.graphics.setColor(self.color)
+                      love.graphics.line(self.p1.x, self.p1.y, self.p2.x, self.p2.y)
+                    end
+                  })
+                  start = {x=entity.x, y = entity.y}
+                  range = self.chainLenght
+                  chainCount = chainCount + 1
+                  if chainCount >= self.chainNumber then
+                    break
+                  end
+                end
+              end
+            end
+          end
+        end
+      until chainCount >= self.chainNumber or lastHit == nil
+      if firstHit then
+        self.charges = self.charges - 1
+        caster.angle = math.angle(caster.x, caster.y, firstHit.x, firstHit.y)
+        caster.speed = {x=0,y=0}
+        caster.acceleration = {x=0,y=0}
+      end
+    end
   }
 }
 

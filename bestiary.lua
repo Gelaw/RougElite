@@ -61,7 +61,8 @@ enemiesLibrary = {
       color = {.8, 0, .8},
       maxLife=30,
       abilities = {
-        thunderCall = newAbility("thunderCall")
+        thunderCall = newAbility("thunderCall"),
+        arc = newAbility("arc")
       },
       IA = basicIA()
     })

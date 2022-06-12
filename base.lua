@@ -265,7 +265,7 @@ end
 
 function love.load(arg)
   init()
-  test()
+  start()
 end
 
 
