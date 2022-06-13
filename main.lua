@@ -150,26 +150,20 @@ function start()
   for r, room in pairs(rooms) do
     if r == 1 then
       for i = 1, 3 do
-        local type = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
-        local ent = applyParams(type(), {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2, dead = true})
-        ent.maxLife = ent.maxLife * 2
-        ent:onDeath()
-        table.insert(entities, ent)
+        local enemyArchetype = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
+        print(enemyArchetype)
+        spawn(enemyArchetype, {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2, dead = true})
       end
     else
       for i = 1, 3 do
-        local type = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
-        local enemy = applyParams(type(), {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2})
-        table.insert(entities, enemy)
-        table.insert(enemies, enemy)
+        local enemyArchetype = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
+        spawn(enemyArchetype, {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2})
       end
     end
   end
   StartingNumberEnemies = #enemies
   safeLoadAndRun("editableScript.lua")
 end
-
-
 
 function love.joystickpressed(joystick, button)
 end

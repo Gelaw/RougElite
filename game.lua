@@ -10,13 +10,13 @@ function gameSetup()
   }
 
 
-    normalfont = love.graphics.newFont(12)
-    bigassfont = love.graphics.newFont(48)
+  normalfont = love.graphics.newFont(12)
+  bigassfont = love.graphics.newFont(48)
 
 
-    difficultyCoef = 1
-    enemies = {}
-    updateTimerClosestEnemy = .2
+  difficultyCoef = 1
+  enemies = {}
+  updateTimerClosestEnemy = .2
   addUpdateFunction(function (dt)
     if not player or #enemies==0 then return end
     updateTimerClosestEnemy = updateTimerClosestEnemy - dt
@@ -191,6 +191,20 @@ function gameSetup()
 
 end
 
+
+function spawn(enemyArchetype, params)
+
+  local entity = applyParams(enemyArchetype(), params)
+
+  table.insert(entities, entity)
+  if entity.team and entity.team > 1 then
+    table.insert(enemies, entity)
+  end
+  if entity.dead then
+    entity:onDeath()
+  end
+  return entity
+end
 
 function newPlayer(params)
 
