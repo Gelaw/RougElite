@@ -211,9 +211,12 @@ function newPlayer(params)
   player = entitySetup({ableEntityInit,livingEntityInit,movingEntityInit,playerInit},  {
     --display
     color = {.4, .6, .2},
+    maxLife = 1000,
+    life = 1000,
     x=0, y=0,
     abilities = {
-      cupcakeTrap = newAbility("cupcakeTrap")
+      shoot = newAbility("shoot"),
+      boeingboeingboeing = newAbility("boeingboeingboeing"),
     },
   })
   if params then

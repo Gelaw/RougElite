@@ -151,7 +151,6 @@ function start()
     if r == 1 then
       for i = 1, 3 do
         local enemyArchetype = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
-        print(enemyArchetype)
         spawn(enemyArchetype, {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2, dead = true})
       end
     else

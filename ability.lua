@@ -238,41 +238,7 @@ abilitiesLibrary = {
     activeUpdate = function (self, dt, caster)
       self.activeTimer = self.activeTimer - dt
       local dx, dy = dt*200 * math.cos(self.angle), dt*200 * math.sin(self.angle)
-      local points = getPointsGlobalCoor(caster)
-      local newPosition = {x = caster.x + dx, y= caster.y + dy}
-      if caster.ignoreWalls then
-        caster.x = newPosition.x
-        caster.y = newPosition.y
-      else
-        local blocked = false
-        local check, blockingWall
-        for p, point in pairs(points) do
-          check, blockingWall = wallCollision(point, {x=point.x+dx, y=point.y+dy})
-          if check then
-            blocked = true
-            caster.speed.x = 0
-            caster.speed.y = 0
-          end
-        end
-        if not blocked then
-          caster.x = newPosition.x
-          caster.y = newPosition.y
-        end
-      end
-      for w, wall in pairs(walls) do
-        local blockedInWall = false
-        for p2 = 1, 4 do
-          if checkIntersect(wall[1], wall[2], points[p2], points[p2%4+1]) then
-            blockedInWall = true
-          end
-        end
-        if blockedInWall then
-          p = get_closest_point(wall[1].x, wall[2].y, wall[2].x, wall[2].y, caster.x, caster.y)
-          local angle = math.angle(p[1], p[2], caster.x, caster.y)
-          caster.x = caster.x + 3*math.cos(angle)
-          caster.y = caster.y + 3*math.sin(angle)
-        end
-      end
+      caster:tryMovingTo({x=caster.x + dx, y=caster.y + dy})
     end,
     deactivate = function (self, caster)
       self.active = false
@@ -296,15 +262,17 @@ abilitiesLibrary = {
     name = "shoot",
     joystickBind = 3,
     keyboardBind = "e",
-    baseCooldown = 1,
+    baseCooldown = 3,
     damage = 20,
+    range = 150,
     activate = function (self, caster)
       --spawn projectile entity
-      local projectile = {
+      local projectile = applyParams(movingEntityInit(), {
         color = {0, 0, 0},
         x=caster.x + math.cos(caster.angle)*5,
         y=caster.y + math.sin(caster.angle)*5,
-        width=5, height=1, angle=caster.angle, speed = 300,
+        speedDrag = 1,
+        width=5, height=1, angle=caster.angle, speed = {x=300*math.cos(caster.angle), y=300*math.sin(caster.angle)},
         timer = 0,
         draw = function (self)
           love.graphics.setColor(self.color)
@@ -314,40 +282,35 @@ abilitiesLibrary = {
           love.graphics.setColor(teamColors[caster.team])
           love.graphics.rectangle("line", -self.width*.5*1.01, -self.height*.5*1.01, self.width*1.01, self.height*1.01)
         end,
-        update = function (self, dt)
-          self.timer = self.timer + dt
-          if self.timer > 4 then self.terminated = true return end
-          local newPosition = {x=self.x + math.cos(self.angle)*dt*self.speed, y=self.y + math.sin(self.angle)*dt*self.speed}
-          if wallCollision(self, newPosition) then
-            self.terminated = true
-            table.insert(particuleEffects, {
-              x = self.x, y =self.y,
-              timeLeft = .4,
-              draw = function (self)
-                love.graphics.translate(self.x, self.y)
-                love.graphics.setColor(1, 1, 1, .4)
-                for i = 1, 6 do
-                  love.graphics.push()
-                  love.graphics.rotate(i*math.pi/3)
-                  love.graphics.rectangle("fill", (1-self.timeLeft/.4)*5, 0, 5, 2)
-                  love.graphics.pop()
-                end
-              end,
-
-            })
-          else
-            self.x = self.x + math.cos(self.angle)*dt*self.speed
-            self.y = self.y + math.sin(self.angle)*dt*self.speed
-          end
-        end,
         contactDamage = self.damage,
         team = caster.team,
         collide = function (self, collider)
           if self.team and collider.team and collider.team ~= self.team then
             self.terminated = true
           end
+        end,
+        onWallCollision = function (self, wall)
+          self.terminated = true
+              table.insert(particuleEffects, {
+                x = self.x, y =self.y,
+                timeLeft = .4,
+                draw = function (self)
+                  love.graphics.translate(self.x, self.y)
+                  love.graphics.setColor(1, 1, 1, .4)
+                  for i = 1, 6 do
+                    love.graphics.push()
+                    love.graphics.rotate(i*math.pi/3)
+                    love.graphics.rectangle("fill", (1-self.timeLeft/.4)*5, 0, 5, 2)
+                    love.graphics.pop()
+                  end
+                end
+              })
         end
-      }
+      })
+      table.insert(projectile.updates, function (self, dt)
+        self.timer = self.timer + dt
+        if self.timer > 4 then self.terminated = true return end
+      end)
       table.insert(entities, projectile)
       self.charges = self.charges - 1
     end
@@ -365,17 +328,18 @@ abilitiesLibrary = {
       self.hitsLeft = self.numberOfHits
       self.active = true
       self.interHitTimer = 0
-      self.hitbox = {x=caster.x, y=caster.y, angle = caster.angle, radius = self.range,
-        draw = function ( self)
-            love.graphics.translate(self.x, self.y)
-            love.graphics.setColor(1, 1, 1, .05)
-            love.graphics.arc("line", "open", 0, 0,    self.radius, self.angle-.25*math.pi, self.angle+.25*math.pi)
-            love.graphics.arc("line", "open", 0, 0, self.radius*.3, self.angle-.25*math.pi, self.angle+.25*math.pi)
-            love.graphics.line(self.radius*math.cos(self.angle-.25*math.pi), self.radius*math.sin(self.angle-.25*math.pi), .3*self.radius*math.cos(self.angle-.25*math.pi), .3*self.radius*math.sin(self.angle-.25*math.pi))
-            love.graphics.line(self.radius*math.cos(self.angle+.25*math.pi), self.radius*math.sin(self.angle+.25*math.pi), .3*self.radius*math.cos(self.angle+.25*math.pi), .3*self.radius*math.sin(self.angle+.25*math.pi))
+      self.hitbox = {x=caster.x, y=caster.y, angle = caster.angle, radius = self.range}
+      if caster== player then
+        self.hitbox.draw = function ( self)
+          love.graphics.translate(self.x, self.y)
+          love.graphics.setColor(1, 1, 1, .05)
+          love.graphics.arc("line", "open", 0, 0,    self.radius, self.angle-.25*math.pi, self.angle+.25*math.pi)
+          love.graphics.arc("line", "open", 0, 0, self.radius*.3, self.angle-.25*math.pi, self.angle+.25*math.pi)
+          love.graphics.line(self.radius*math.cos(self.angle-.25*math.pi), self.radius*math.sin(self.angle-.25*math.pi), .3*self.radius*math.cos(self.angle-.25*math.pi), .3*self.radius*math.sin(self.angle-.25*math.pi))
+          love.graphics.line(self.radius*math.cos(self.angle+.25*math.pi), self.radius*math.sin(self.angle+.25*math.pi), .3*self.radius*math.cos(self.angle+.25*math.pi), .3*self.radius*math.sin(self.angle+.25*math.pi))
         end
-      }
-      table.insert(entities, self.hitbox)
+        table.insert(entities, self.hitbox)
+      end
     end,
     activeUpdate = function (self, dt, caster)
       self.hitbox.x, self.hitbox.y, self.hitbox.angle = caster.x, caster.y, caster.angle
@@ -618,6 +582,62 @@ abilitiesLibrary = {
         caster.acceleration = {x=0,y=0}
       end
     end
+  },
+  boeingboeingboeing = {
+    name = "boeingboeingboeing",
+    baseCooldown = 3,
+    keyboardBind = "a",
+    joystickBind = 2,
+    range = 270,
+    bounces = 3,
+    maxZ = 3,
+    explosionRadius = 30,
+    activationDuration = .5,
+    activate = function (self, caster)
+      projectile = applyParams(movingEntityInit(),{
+        x = caster.x, y = caster.y, z = 0, maxZ = self.maxZ,
+        width = 5, height = 5,
+        team = caster.team,
+        basesSpeed = 200,
+        speedDrag = 1,
+        speed = {x= math.cos(caster.angle)*200, y= math.sin(caster.angle)*200},
+        angle = caster.angle,
+        range = self.range,
+        bounces = self.bounces,
+        bouncesLeft = self.bounces,
+        explosionRadius = self.explosionRadius,
+        d = 0,
+        onWallCollision = function (self, wall)
+          angleWall = math.angle(wall[1].x, wall[1].y, wall[2].x, wall[2].y)
+          self.angle = -self.angle + 2*angleWall
+          self.speed = {x=self.basesSpeed*math.cos(self.angle), y=self.basesSpeed*math.sin(self.angle)}
+        end
+      })
+      table.insert(projectile.updates, function (self, dt)
+        local delta = self.basesSpeed * dt
+        self.d = self.d + delta
+        if self.d > self.range/self.bounces then
+          self.bouncesLeft = self.bouncesLeft - 1
+          self.d = 0
+          local hitbox = {
+            x = self.x, y=self.y, radius = self.explosionRadius, color = teamColors[self.team], timeLeft = .5,
+            draw = function (self)
+              love.graphics.translate(self.x, self.y)
+              love.graphics.setColor(self.color)
+              love.graphics.circle("line", 0, 0, self.radius)
+            end
+          }
+          table.insert(particuleEffects, hitbox)
+          hitInHitbox(hitbox, caster, 30)
+          if self.bouncesLeft <= 0 then
+            self.terminated = true
+          end
+        end
+        self.z = self.maxZ*math.sin(math.pi*self.d/self.range)
+      end)
+      table.insert(entities, projectile)
+      self.active = true
+    end,
   }
 }
 
@@ -689,8 +709,8 @@ function newAbility(libraryIndex)
     cooldown = 0,
     charges = 1,
     maxCharges = 1,
-    keyboardBind = 2,
-    joystickBind = "a",
+    keyboardBind = "a",
+    joystickBind = 2,
     castConditions = function () return true end,
     bindCheck = function (self)
       return (self.joystickBind and joystick and joystick:isDown(self.joystickBind)) or(self.keyboardBind and love.keyboard.isDown(self.keyboardBind))

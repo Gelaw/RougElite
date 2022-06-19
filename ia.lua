@@ -138,7 +138,7 @@ function IAtargetingUpdate(dt)
         if not entity.dead then
           for e2, entity2 in pairs(entities) do
             local distance = math.dist(entity.x, entity.y, entity2.x, entity2.y)
-            if entity2.team and entity.team ~= entity2.team and not entity2.dead then
+            if entity2.team and entity.team ~= entity2.team and entity2.life and entity2.life > 0 then
               if not entity.IA.target or entity.IA.distTotarget>distance then
                 entity.IA.target = entity2
                 entity.IA.distTotarget = distance

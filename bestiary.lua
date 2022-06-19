@@ -44,6 +44,7 @@ enemiesLibrary = {
       maxAcceleration = math.random(1200, 1500)*type,
       maxSpeed = 100,
       abilities = {
+        boeingboeingboeing = applyParams(newAbility(), abilitiesLibrary.boeingboeingboeing),
         shoot = applyParams(newAbility(), abilitiesLibrary.shoot)
       },
       --behavior

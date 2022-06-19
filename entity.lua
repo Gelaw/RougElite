@@ -56,10 +56,36 @@ function movingEntityInit(entity)
   entity.speedDrag= 0.9
   entity.maxAcceleration = 3000
   entity.stuck = false
+  entity.tryMovingTo = function (self, dest)
+    dest.angle = dest.angle or self.angle
+    local points = getPointsGlobalCoor(self)
+    local newPosition = {x = dest.x, y= dest.y, width = self.width, height = self.height, angle = dest.angle}
+    local newPoints = getPointsGlobalCoor(newPosition)
+    local blocked = false
+    local collidedWalls = {}
+    local blockingWall = nil
+    for p = 1, #points do
+      check, blockingWall = wallCollision(points[p], newPoints[p])
+      if check then
+        blocked = true
+        break
+      end
+    end
+    if blocked then
+      if self.onWallCollision then
+        self:onWallCollision(blockingWall)
+      end
+      table.insert(collidedWalls, blockingWall)
+    end
+    if #collidedWalls > 0 then return collidedWalls end
+    self.x = newPosition.x
+    self.y = newPosition.y
+    self.angle = newPosition.angle
+  end
   table.insert(entity.updates, function (self, dt)
     if entity.stuck then
       self.acceleration = {x=0, y=0}
-      self.speed = {x = 0, y=0}
+      self.speed = {x=0, y=0}
       return
     end
     self.speed.x = (self.speed.x + self.acceleration.x*dt)*entity.speedDrag
@@ -68,41 +94,8 @@ function movingEntityInit(entity)
       self.speed.x = math.max(-self.maxSpeed, math.min(self.speed.x, self.maxSpeed))
       self.speed.y = math.max(-self.maxSpeed, math.min(self.speed.y, self.maxSpeed))
     end
-    local dx, dy = self.speed.x * dt, self.speed.y * dt
-    local points = getPointsGlobalCoor(self)
-    local newPosition = {x = self.x + dx, y= self.y + dy}
-    if self.ignoreWalls then
-      self.x = newPosition.x
-      self.y = newPosition.y
-    else
-      local blocked = false
-      local check, blockingWall
-      for p, point in pairs(points) do
-        check, blockingWall = wallCollision(point, {x=point.x+dx, y=point.y+dy})
-        if check then
-          blocked = true
-          self.speed.x = 0
-          self.speed.y = 0
-        end
-      end
-      if not blocked then
-        self.x = newPosition.x
-        self.y = newPosition.y
-      end
-    end
-    for w, wall in pairs(walls) do
-      local blockedInWall = false
-      for p2 = 1, 4 do
-        if checkIntersect(wall[1], wall[2], points[p2], points[p2%4+1]) then
-          blockedInWall = true
-        end
-      end
-      if blockedInWall then
-        p = get_closest_point(wall[1].x, wall[2].y, wall[2].x, wall[2].y, self.x, self.y)
-        local angle = math.angle(p[1], p[2], self.x, self.y)
-        self.x = self.x + math.cos(angle)
-        self.y = self.y + math.sin(angle)
-      end
+    if math.abs(self.speed.x * dt) > 0 or math.abs(self.speed.y * dt)>0 then
+      self:tryMovingTo({x=self.x + self.speed.x * dt, y=self.y + self.speed.y * dt, angle = self.targetAngle})
     end
   end)
   return entity
@@ -222,67 +215,20 @@ function playerInit(entity)
   entity.IA = nil
   table.insert(entity.updates,
   function (self, dt)
-    --temporary acceleration variables
-    local ax, ay = 0, 0
-    --keyboard ZQSD binds for player movement
-    if love.keyboard.isDown("z") and not love.keyboard.isDown("s") then
-      ay = -self.maxAcceleration
-    end
-    if love.keyboard.isDown("s") and not love.keyboard.isDown("z") then
-      ay = self.maxAcceleration
-    end
-    if love.keyboard.isDown("q") and not love.keyboard.isDown("d") then
-      ax = -self.maxAcceleration
-    end
-    if love.keyboard.isDown("d") and not love.keyboard.isDown("q") then
-      ax = self.maxAcceleration
-    end
-    --if gamepad is connected, use left joystick as input
-    if joystick then
-      a1, a2, a3, a4, a5, a6 = joystick:getAxes()
-      if a3 == 1 and a6 == 1 then
-        camera.angle = -player.angle - math.rad(90)
-        if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
-          if a2<-0.1 then
-            ax, ay = self.maxAcceleration*a1*0.05, self.maxAcceleration*a2
-          end
-
-        end
-      else
-        camera.angle = camera.angle + 0.01*(a3 - a6)
-        --check if joystick is outside of deadzone (TODO later: parameter 0.3 to be extrated and made modifiable once parameter norm in place)
-        if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
-          ax, ay = self.maxAcceleration*a1*math.abs(a1), self.maxAcceleration*a2*math.abs(a2)
-        end
-      end
-    end
-    mx, my = love.mouse.getPosition()
-    angle = math.angle(.5*width, .5*height, mx, my)
-    distance = math.dist(.5*width, .5*height, mx, my)
+    local mx, my = love.mouse.getPosition()
+    local angle = math.angle(.5*width, .5*height, mx, my)
+    local distance = math.dist(.5*width, .5*height, mx, my)
     if love.mouse.isDown(1) then
       q = math.min(1, distance/100)
-      ax, ay = q*self.maxAcceleration * math.cos(angle), q*self.maxAcceleration * math.sin(angle)
-    elseif not self.stuck and math.abs(self.speed.x) < 5 and math.abs(self.speed.y) < 5 then
-      self.speed = {x=0, y=0}
+      self.acceleration ={x=q*self.maxAcceleration * math.cos(angle),y=q*self.maxAcceleration * math.sin(angle)}
+    else
       self.acceleration = {x=0, y=0}
-      self.angle = angle
     end
 
-    --acceleration and orientation calculations
-    local a = camera.angle
-    self.acceleration = {x=ax*math.cos(a)+ay*math.sin(a), y=ay*math.cos(a)-ax*math.sin(a)}
-    if math.abs(self.speed.x)>0 or math.abs(self.speed.y)>0 then
-      self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
-      if joystick then
-        if a3 == 1 and a6 == 1 then
-          self.angle = self.angle + a1*0.1
-        end
-      end
-    end
-
+    self.targetAngle = angle
     --camera zoom control
     -- variables set in "cameraSetup()" method
-    if (joystick and joystick:isDown(3)) or love.keyboard.isDown("lctrl") then
+    if love.keyboard.isDown("lctrl") then
       camera.scale = math.max(camera.scale - camera.scaleChangeRate*dt, camera.minScale)
     else
       camera.scale = math.min(camera.scale + camera.scaleChangeRate*dt, camera.maxScale)
