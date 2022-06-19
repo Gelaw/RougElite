@@ -197,11 +197,11 @@ function spawn(enemyArchetype, params)
   local entity = applyParams(enemyArchetype(), params)
 
   table.insert(entities, entity)
-  if entity.team and entity.team > 1 then
-    table.insert(enemies, entity)
-  end
+
   if entity.dead then
     entity:onDeath()
+  elseif entity.team and entity.team > 1 then
+    table.insert(enemies, entity)
   end
   return entity
 end

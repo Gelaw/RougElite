@@ -65,7 +65,7 @@ function movingEntityInit(entity)
     local collidedWalls = {}
     local blockingWall = nil
     for p = 1, #points do
-      check, blockingWall = wallCollision(points[p], newPoints[p])
+      check, blockingWall = wallCollision(newPoints[p], newPoints[p%#points+1])
       if check then
         blocked = true
         break

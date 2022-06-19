@@ -38,7 +38,7 @@ function basicIA()
         end
         if math.dist(entity.x, entity.y, ia.target.x, ia.target.y) < ia.aggroRange and math.random()*ia.difficultyCoef > .99 then
           --turn toward ia.target
-          entity.angle = math.angle(entity.x, entity.y, ia.target.x, ia.target.y)
+          entity.targetAngle = math.angle(entity.x, entity.y, ia.target.x, ia.target.y)
           ia:switchToTask("decision")
         end
       end
@@ -80,7 +80,7 @@ function basicIA()
           ia:switchToTask("decision")
           return
         end
-        entity.angle = math.angle(entity.x, entity.y, ia.target.x, ia.target.y)
+        entity.targetAngle = math.angle(entity.x, entity.y, ia.target.x, ia.target.y)
         local distance = math.dist(entity.x, entity.y, ia.target.x, ia.target.y)
         if distance > entity.abilities[ia.choice].range then
           entity.acceleration = {x=entity.maxAcceleration*math.cos(entity.angle), y=entity.maxAcceleration*math.sin(entity.angle)}
@@ -96,7 +96,7 @@ function basicIA()
     }),
     run = applyParams(newTask(), {
       start = function (self, ia, entity)
-        entity.angle = math.random()*2*math.pi
+        entity.targetAngle = math.random()*2*math.pi
         local accQ = math.min(math.random() * ia.difficultyCoef, 1)
         entity.acceleration = {x=accQ*entity.maxAcceleration*math.cos(entity.angle), y=accQ*entity.maxAcceleration*math.sin(entity.angle)}
         self.timer = .3 * math.min(ia.difficultyCoef, 1)

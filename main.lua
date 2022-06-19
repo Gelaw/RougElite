@@ -193,8 +193,4 @@ function love.wheelmoved(x, y)
 end
 
 function love.mousemoved(x, y, dx, dy)
-  controlledEntity = ghost or player
-  if controlledEntity then
-    controlledEntity.angle = math.angle(.5*width, .5*height, x, y)
-  end
 end
