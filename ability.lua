@@ -411,12 +411,10 @@ abilitiesLibrary = {
     activeUpdate = function (self, dt, caster)
       self.activeTimer = self.activeTimer - dt
       caster.z = self.maxZ * (self.activeTimer>.5*self.activationDuration and (1-self.activeTimer/self.activationDuration) or (self.activeTimer/self.activationDuration))
-      local newPosition = {x = caster.x + math.cos(self.angle)*300* dt, y= caster.y + math.sin(self.angle)*300*dt}
-      if wallCollision(caster, newPosition) and not self.ignoreWalls then
+      local collision = caster:tryMovingTo({x=caster.x + math.cos(self.angle)*300* dt, y=caster.y + math.sin(self.angle)*300*dt})
+      if collision then
         self:deactivate(caster)
       else
-        caster.x = newPosition.x
-        caster.y = newPosition.y
         caster.speed = {x=0, y=0}
         caster.acceleration = {x=0, y=0}
         if math.dist(self.hitboxRef.x, self.hitboxRef.y, caster.x, caster.y) > self.hitboxSize then
