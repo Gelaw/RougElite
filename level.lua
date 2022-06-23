@@ -23,39 +23,6 @@ function levelDisplayInit()
       end
     end, 3)
 
-    --minimap
-    addDrawFunction(function ()
-      love.graphics.origin()
-      love.graphics.translate(width-300, height-200)
-      love.graphics.scale(.1)
-      love.graphics.translate(.5*width+100, .5*height+100)
-      love.graphics.setColor(.2,.2,.2)
-      love.graphics.rectangle("fill", -.5*width-100, -.5*height-100, width+200, height+200)
-      love.graphics.translate(-camera.x, -camera.y)
-      for r, room in pairs(rooms) do
-        love.graphics.setColor(room.roomcolor)
-        love.graphics.rectangle("fill", room.x-room.w/2, room.y-room.h/2, room.w, room.h)
-      end
-      love.graphics.scale(10)
-      love.graphics.setColor(0, 0, 0)
-      for w, wall in pairs(walls) do
-        love.graphics.line(wall[1].x/10, wall[1].y/10, wall[2].x/10, wall[2].y/10)
-      end
-      if player then
-        love.graphics.scale(.1)
-        love.graphics.setColor(player.color)
-        love.graphics.rectangle("fill", player.x, player.y, math.max(player.width, 30), math.max(player.height, 30))
-      end
-      if ghost then
-        love.graphics.scale(.1)
-        love.graphics.setColor(ghost.color)
-        love.graphics.rectangle("fill", ghost.x, ghost.y, math.max(ghost.width, 30), math.max(ghost.height, 30))
-      end
-      if not invocationCircle.hidden then
-        love.graphics.setColor(invocationCircle.color)
-        love.graphics.circle("fill", invocationCircle.x, invocationCircle.y, 30)
-      end
-    end,9)
 end
 
 

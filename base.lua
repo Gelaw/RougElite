@@ -32,7 +32,8 @@ function basicEntityDraw(entity)
   love.graphics.translate(entity.x, entity.y)
   if entity.angle then love.graphics.rotate(entity.angle) end
   if entity.shape == "rectangle" then
-    love.graphics.rectangle("fill", -entity.width/2, -entity.height/2, entity.width, entity.height)
+    local w, h = entity.w or entity.width, entity.h or entity.height
+    love.graphics.rectangle("fill", -w/2, -h/2, w, h)
   elseif entity.shape == "circle" then
     love.graphics.circle("fill", 0, 0, entity.radius)
   end
@@ -265,7 +266,7 @@ end
 
 function love.load(arg)
   init()
-  start()
+  projectSetup()
 end
 
 

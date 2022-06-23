@@ -4,7 +4,7 @@ function newEntity()
     --display
     shape = "rectangle",
     color = {1, .7, .9},
-    x=10, y=10, z=0, width=5, height=5, angle=0,
+    x=10, y=10, z=0, w=5, h=5, angle=0,
     updates = {},
     draw = function (self)
       love.graphics.translate(self.x, self.y)
@@ -15,7 +15,7 @@ function newEntity()
       love.graphics.translate(0, 3+self.z)
       love.graphics.rotate(self.angle+camera.angle)
       love.graphics.setColor(0, 0, 0, 0.1)
-      love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
+      love.graphics.rectangle("fill", -self.w/2, -self.h/2, self.w, self.h)
       love.graphics.pop()
       --body display (flickering in case of invicibility frames)
 
@@ -23,7 +23,7 @@ function newEntity()
       if not self.invicibility or (math.floor(self.invicibility.time*20))%2~=1 then
         -- jump calculations
         love.graphics.setColor(self.color)
-        love.graphics.rectangle("fill", -self.width/2, -self.height/2, self.width, self.height)
+        love.graphics.rectangle("fill", -self.w/2, -self.h/2, self.w, self.h)
         if self == player then
           love.graphics.setColor(0, .5, .8, .8)
           love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
@@ -59,16 +59,21 @@ function movingEntityInit(entity)
   entity.tryMovingTo = function (self, dest)
     dest.angle = dest.angle or self.angle
     local points = getPointsGlobalCoor(self)
-    local newPosition = {x = dest.x, y= dest.y, width = self.width, height = self.height, angle = dest.angle}
+    local newPosition = {x = dest.x, y= dest.y, w = self.w, h = self.h, angle = dest.angle}
     local newPoints = getPointsGlobalCoor(newPosition)
     local blocked = false
     local collidedWalls = {}
     local blockingWall = nil
-    for p = 1, #points do
-      check, blockingWall = wallCollision(newPoints[p], newPoints[p%#points+1])
-      if check then
-        blocked = true
-        break
+    check, blockingWall = wallCollision(self, dest)
+    if check then
+      blocked = true
+    else
+      for p = 1, #points do
+        check, blockingWall = wallCollision(newPoints[p], newPoints[p%#points+1])
+        if check then
+          blocked = true
+          break
+        end
       end
     end
     if blocked then
@@ -175,17 +180,31 @@ function livingEntityInit(entity)
 end
 
 function playerInit(entity)
-  local entity = entity or newEntity()
+  player = entity or movingEntityInit()
+
+  if passives then
+    for s, stat in pairs(passives) do
+      if player[s] then
+        player[s] = player[s] * stat
+      else
+        for a, ability in pairs(player.abilities) do
+          if ability[s] then
+            ability[s] = ability[s] * stat
+          end
+        end
+      end
+    end
+  end
 
   for e, enemy in pairs(enemies) do
-    if enemy == entity then
+    if enemy == player then
       table.remove(enemies, e)
       break
     end
   end
   --used in base camera.update()
-  camera.mode = {"follow", entity}
-  applyParams(entity, {
+  camera.mode = {"follow", player}
+  applyParams(player, {
     dead = false,
     life = entity.maxLife,
     team = 1,
@@ -212,13 +231,13 @@ function playerInit(entity)
       camera.mode = {"follow", ghost}
     end
   })
-  entity.IA = nil
-  table.insert(entity.updates,
+  player.IA = nil
+  table.insert(player.updates,
   function (self, dt)
     local mx, my = love.mouse.getPosition()
     local angle = math.angle(.5*width, .5*height, mx, my)
     local distance = math.dist(.5*width, .5*height, mx, my)
-    if love.mouse.isDown(1) then
+    if love.mouse.isDown(1) and mousePressedOnWorld then
       q = math.min(1, distance/100)
       self.acceleration ={x=q*self.maxAcceleration * math.cos(angle),y=q*self.maxAcceleration * math.sin(angle)}
     else
@@ -234,7 +253,7 @@ function playerInit(entity)
       camera.scale = math.min(camera.scale + camera.scaleChangeRate*dt, camera.maxScale)
     end
   end)
-  table.insert(entity.updates,
+  table.insert(player.updates,
   function (self, dt)
     local time = love.timer.getTime()
     local hit
@@ -246,14 +265,17 @@ function playerInit(entity)
       end
     end
   end)
-  return entity
+
+  abilitiesHUD:load()
+
+  return player
 end
 
 function newGhost(params)
   ghost = {
     shape = "rectangle",
     x=0, y=0,
-    width = 10, height = 10,
+    w= 10, h = 10,
     color = {.3, .3, 1},
     speed={x=0, y=0},
     speedDrag= 0.9,
@@ -282,7 +304,7 @@ function newGhost(params)
       if love.keyboard.isDown("d") and not love.keyboard.isDown("q") then
         ax = self.maxAcceleration
       end
-      if love.mouse.isDown(1) then
+      if love.mouse.isDown(1) and mousePressedOnWorld then
         mx, my = love.mouse.getPosition()
         angle = math.angle(.5*width, .5*height, mx, my)
         q = math.min(1, math.dist(.5*width, .5*height, mx, my)/100)
@@ -307,7 +329,7 @@ function newGhost(params)
         self.terminated = true
         self.collide = nil
         --take control of the enemy
-        player = playerInit(collider)
+        playerInit(collider)
         ghost = nil
         camera.mode = {"follow", player}
       end
