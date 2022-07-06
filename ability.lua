@@ -605,8 +605,8 @@ abilitiesLibrary = {
       end
     end
   },
-  boeingboeingboeing = {
-    name = "boeingboeingboeing",
+  bouncingBomb = {
+    name = "bouncingBomb",
     baseCooldown = 3,
     keyboardBind = "a",
     joystickBind = 2,
