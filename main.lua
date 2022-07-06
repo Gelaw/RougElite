@@ -31,6 +31,7 @@ function love.keypressed(key, scancode, isrepeat)
     else
       newPlayer({x=ghost.x, y=ghost.y})
       ghost.terminated = true
+      ghost = nil
     end
   end
   if key == "h" then

@@ -2,6 +2,7 @@
 function newEntity()
   local entity = {
     --display
+    name = "entity",
     shape = "rectangle",
     color = {1, .7, .9},
     x=10, y=10, z=0, w=5, h=5, angle=0,
@@ -29,8 +30,8 @@ function newEntity()
           love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
         end
       end
+      love.graphics.rotate(-(self.angle+camera.angle))
       if self.IA then
-        love.graphics.rotate(-(self.angle+camera.angle))
         if self.IA.target then
           local angle = math.angle(self.x, self.y, self.IA.target.x, self.IA.target.y)
           love.graphics.line(0, 0, 5*math.cos(angle), 5*math.sin(angle))
@@ -115,11 +116,21 @@ function livingEntityInit(entity)
   entity.team = 0
   entity.invicibility = nil
   entity.invicibilityTimeAfterHit = .5
+  entity.ressources = {}
+  entity.ressourceGenerationTimer = 0
   entity.onDeath = function (self)
     if self.IA then
       self.IA.task = "dead"
       self.IA.cast = nil
       self.IA.choice = nil
+    end
+    if self.team > 1 then
+      for e, enemy in pairs(enemies) do
+        if enemy == self then
+          table.remove(enemies, e)
+          break
+        end
+      end
     end
     self.contactDamage = nil
     self.speed = {x=0,y=0}
@@ -164,6 +175,7 @@ function livingEntityInit(entity)
     end
   end
   table.insert(entity.updates, function (self, dt)
+    if self.dead then return end
     -- invicibility
     -- simple timer, with collide and display effects
     if self.invicibility then
@@ -173,6 +185,15 @@ function livingEntityInit(entity)
         --invicibility end
         self.invicibility = nil
         self.intangible = false
+      end
+    end
+    self.ressourceGenerationTimer = self.ressourceGenerationTimer + dt
+    if self.ressourceGenerationTimer > .25 then
+      self.ressourceGenerationTimer = self.ressourceGenerationTimer - .25
+      for r, ressource in pairs(self.ressources) do
+        if ressource.regenPerSec then
+          ressource.current = math.min(ressource.max, ressource.current + ressource.regenPerSec/4)
+        end
       end
     end
   end)
@@ -195,7 +216,7 @@ function playerInit(entity)
       end
     end
   end
-
+  player.name = "player"
   for e, enemy in pairs(enemies) do
     if enemy == player then
       table.remove(enemies, e)

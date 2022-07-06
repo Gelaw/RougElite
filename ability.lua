@@ -13,6 +13,7 @@ abilitiesLibrary = {
     activate = function (self, caster)
       self.activeTimer = self.activationDuration
       self.active = true
+      self:deductCosts(caster)
       self.keyReleased = false
       caster.stuck = true
       self.hitbox = {
@@ -44,8 +45,8 @@ abilitiesLibrary = {
       if self:bindCheck() and self.keyReleased then self:deactivate(caster) end
     end,
     deactivate = function (self, caster)
+      self:onCooldownStart()
       self.active = false
-      self.charges = self.charges - 1
       local damage = math.floor(self.minDamage + (self.maxDamage-self.minDamage)*(1-self.hitbox.fill)) * self.damage
       caster.stuck = false
       hitInHitbox(self.hitbox, caster, damage)
@@ -64,6 +65,7 @@ abilitiesLibrary = {
     name = "unbreakable",
     hitbox = nil,
     activate = function (self, caster)
+      self:deductCosts(caster)
       self.activeTimer = self.activationDuration
       self.active = true
       local x, y = caster.x+ self.distanceToCaster*math.cos(caster.angle), caster.y + self.distanceToCaster*math.sin(caster.angle)
@@ -110,7 +112,7 @@ abilitiesLibrary = {
     end,
     deactivate = function (self)
       self.active = false
-      self.charges = self.charges - 1
+      self:onCooldownStart()
       self.hitbox.terminated = true
       local hitWall = self.hitbox.wall
       for w, wall in pairs(walls) do
@@ -131,11 +133,12 @@ abilitiesLibrary = {
     damage = 1,
     name = "absolute zero",
     joystickBind = 8,
-    keyboardBind = "r";
+    keyboardBind = "r",
     activationDuration = 1,
     range = 100,
     hitbox = nil,
     activate = function (self, caster)
+      self:deductCosts(caster)
       self.activeTimer = self.activationDuration
       self.active = true
       self.keyReleased = false
@@ -164,7 +167,7 @@ abilitiesLibrary = {
     end,
     deactivate = function (self, caster)
       self.active = false
-      self.charges = self.charges - 1
+      self:onCooldownStart()
       local damage = math.floor(self.minDamage + (self.maxDamage-self.minDamage)*(1-self.hitbox.fill)) *self.damage
       caster.stuck = false
       hitInHitbox(self.hitbox, caster, damage)
@@ -174,7 +177,7 @@ abilitiesLibrary = {
   meleeAutoHit = {
     baseCooldown = 1,
     damage= 10,
-    range=30,
+    range = 30,
     name = "autoattack",
     joystickBind = 1,
     keyboardBind = "e",
@@ -189,8 +192,10 @@ abilitiesLibrary = {
           deltaAngle = math.pi - math.abs(math.abs(angle - caster.angle) - math.pi);
           if distance <= self.range and deltaAngle < self.angleDelta then
             if not wallCollision(caster, entity) then
-              self.charges = self.charges - 1
               entity:hit(self.damage)
+              self:onCooldownStart()
+
+              self:deductCosts(caster)
               caster.angle = angle
               caster.speed = {x=0,y=0}
               caster.acceleration = {x=0,y=0}
@@ -226,25 +231,33 @@ abilitiesLibrary = {
   dash = {
     joystickBind = 6,
     keyboardBind = "lshift",
-    baseCooldown = 3,
+    baseCooldown = .5,
     name = "dash",
     range=300,
     rangeMin = 100,
     activationDuration = .3,
-    charges = 2, maxCharges = 2,
+    charges = 2, maxCharges = 4, chargeCooldown = 0, baseChargeCooldown = 5,
     activate = function (self, caster)
+      self:deductCosts(caster)
       self.angle = caster.angle
       self.activeTimer = self.activationDuration
       self.active = true
     end,
     activeUpdate = function (self, dt, caster)
       self.activeTimer = self.activeTimer - dt
-      local dx, dy = dt*200 * math.cos(self.angle), dt*200 * math.sin(self.angle)
-      caster:tryMovingTo({x=caster.x + dx, y=caster.y + dy})
+      local distance = 600
+      local maxIncrement = 5
+      for i = 1, maxIncrement do
+        local dx, dy = dt*distance * math.cos(self.angle), dt*distance * math.sin(self.angle)
+        local collidedWalls = caster:tryMovingTo({x=caster.x + dx, y=caster.y + dy})
+        distance = distance / 2
+        if not collidedWalls or distance > 10 then break end
+      end
     end,
     deactivate = function (self, caster)
       self.active = false
       self.charges = self.charges - 1
+      self:onCooldownStart()
     end
   },
   jump = {
@@ -267,6 +280,7 @@ abilitiesLibrary = {
     damage = 20,
     range = 150,
     activate = function (self, caster)
+      self:deductCosts(caster)
       --spawn projectile entity
       local projectile = applyParams(movingEntityInit(), {
         color = {0, 0, 0},
@@ -313,7 +327,7 @@ abilitiesLibrary = {
         if self.timer > 4 then self.terminated = true return end
       end)
       table.insert(entities, projectile)
-      self.charges = self.charges - 1
+      self:onCooldownStart()
     end
   },
   thunderCall = {
@@ -326,6 +340,7 @@ abilitiesLibrary = {
     interHitTimer = 0,
     damage = 10,
     activate = function (self, caster)
+      self:deductCosts(caster)
       self.hitsLeft = self.numberOfHits
       self.active = true
       self.interHitTimer = 0
@@ -356,6 +371,7 @@ abilitiesLibrary = {
             local distance = (.7*math.random()^1.15+.3)*self.range
             local hitbox = {
               color = {.2, .2, 1, .1},
+              caster = caster,
               x=caster.x + distance*math.cos(angle), y=caster.y + distance*math.sin(angle),
               fill = 0, timerTillStrike = 1, damage= self.damage,
               radius = 15, team = caster.team,
@@ -374,7 +390,10 @@ abilitiesLibrary = {
                 self.timerTillStrike = self.timerTillStrike - dt
                 self.fill = 1 - self.timerTillStrike
                 if self.timerTillStrike <= 0 then
-                  hitInHitbox(self, caster, self.damage)
+                  local hits = hitInHitbox(self, caster, self.damage)
+                  if #hits > 0 and self.caster and self.caster.ressources.mana then
+                    self.caster.ressources.mana.current = math.min(self.caster.ressources.mana.max, self.caster.ressources.mana.current + 3)
+                  end
                   self.terminated = true
                 end
               end
@@ -388,8 +407,8 @@ abilitiesLibrary = {
     end,
     deactivate = function (self)
       self.active = false
-      self.charges = self.charges - 1
       self.hitbox.terminated = true
+      self:onCooldownStart()
     end
   },
   valkyrie = {
@@ -404,6 +423,7 @@ abilitiesLibrary = {
     range = 100,
     damage = .1,
     activate = function (self, caster)
+      self:deductCosts(caster)
       self.active = true
       self.activeTimer = self.activationDuration
       self.angle = caster.angle
@@ -445,7 +465,7 @@ abilitiesLibrary = {
     end,
     deactivate = function (self, caster)
       self.active = false
-      self.charges = self.charges - 1
+      self:onCooldownStart()
       caster.z = 0
     end
   },
@@ -460,6 +480,7 @@ abilitiesLibrary = {
     range = 80,
     hitboxes = {},
     activate = function (self, caster)
+      self:deductCosts(caster)
       self.active = true
       self.activeTimer = self.activationDuration
       caster.stuck = true
@@ -512,7 +533,7 @@ abilitiesLibrary = {
     end,
     deactivate = function (self, caster)
       caster.stuck = false
-      self.charges = self.charges - 1
+      self:onCooldownStart()
       self.active = false
     end
   },
@@ -524,6 +545,7 @@ abilitiesLibrary = {
     activationDuration = .1,
     chainLenght = 120,
     chainNumber = 7,
+    costs = {mana = 30},
     damage= 10,
     range = 240,
     activate = function (self, caster)
@@ -575,7 +597,8 @@ abilitiesLibrary = {
         end
       until chainCount >= self.chainNumber or lastHit == nil
       if firstHit then
-        self.charges = self.charges - 1
+        self:deductCosts(caster)
+        self:onCooldownStart()
         caster.angle = math.angle(caster.x, caster.y, firstHit.x, firstHit.y)
         caster.speed = {x=0,y=0}
         caster.acceleration = {x=0,y=0}
@@ -594,6 +617,7 @@ abilitiesLibrary = {
     damage = 30,
     activationDuration = .5,
     activate = function (self, caster)
+      self:deductCosts(caster)
       projectile = applyParams(movingEntityInit(),{
         x = caster.x, y = caster.y, z = 0, maxZ = self.maxZ,
         w = 5, h = 5,
@@ -641,7 +665,6 @@ abilitiesLibrary = {
     end,
   }
 }
-
 function hitInHitbox(hitbox, caster, damage)
   damage = damage or 1
   hits = {}
@@ -701,22 +724,24 @@ function newAbility(libraryIndex)
       love.graphics.print(self.name, .5*130-.5*love.graphics.getFont():getWidth(self.name), .5*130)
       love.graphics.print(joystickButtons[self.joystickBind])
       love.graphics.print(self.keyboardBind, 0, 115)
-      if self.maxCharges ~= 1 then
-        love.graphics.print(self.charges.."/"..self.maxCharges, 115, 0)
+      if (self.charges and self.maxCharges ~= 1) then
+        love.graphics.arc("line", "open", 115, 15, 15, 0-.5*math.pi,-.5*math.pi+ 2*math.pi*self.chargeCooldown/self.baseChargeCooldown)
+        love.graphics.print(self.charges.."/"..self.maxCharges, 105, 8)
       end
     end,
     activationDuration = 0,
     baseCooldown = 99,
     cooldown = 0,
-    charges = 1,
-    maxCharges = 1,
     keyboardBind = "a",
     joystickBind = 2,
     castConditions = function () return true end,
     bindCheck = function (self)
       return (self.joystickBind and joystick and joystick:isDown(self.joystickBind)) or(self.keyboardBind and love.keyboard.isDown(self.keyboardBind))
     end,
-    activate = function (self)
+    activate = function (self, caster)
+      if self.costs then
+        self:deductCosts(caster)
+      end
       self.activeTimer = self.activationDuration
       self.active = true
     end,
@@ -725,7 +750,11 @@ function newAbility(libraryIndex)
     end,
     deactivate = function (self)
       self.active = false
-      self.charges = self.charges - 1
+      if self.charges then
+        self.charges = self.charges - 1
+      else
+        self:onCooldownStart()
+      end
     end,
     onCooldownStart = function (self)
       self.cooldown = self.baseCooldown
@@ -734,8 +763,31 @@ function newAbility(libraryIndex)
       self.cooldown = math.max(self.cooldown - dt, 0)
     end,
     onCooldownEnd = function (self)
-      self.charges = self.charges + 1
+
     end,
+    checkCostsAvailability = function (self, caster)
+      local costsAvailable = true
+      for c, cost in pairs(self.costs) do
+        if not ((caster.ressources and caster.ressources[c] and caster.ressources[c].current >= cost) or (caster[c] and caster[c] >= cost)) then
+          return false
+        end
+      end
+      return true
+    end,
+    deductCosts = function (self, caster)
+      if not self.costs then
+        return
+      end
+      for c, cost in pairs(self.costs) do
+        if (caster.ressources and caster.ressources[c] and caster.ressources[c].current >= cost) then
+          caster.ressources[c].current = caster.ressources[c].current - cost
+        elseif (caster[c] and caster[c] >= cost) then
+          caster[c] = caster[c] - cost
+        else
+          error("ressource ".. c .." not found to cast" .. self.name .." of " .. caster.name.."!")
+        end
+      end
+    end
   }
   if libraryIndex and abilitiesLibrary[libraryIndex] then
     return applyParams( ability, abilitiesLibrary[libraryIndex])
@@ -755,17 +807,33 @@ function ableEntityInit(entity)
         if ability.cooldown <= 0 or ability.baseCooldown <= 0 then
           ability:onCooldownEnd(entity)
         end
-      elseif ability.charges < ability.maxCharges then
-        ability:onCooldownStart()
+      end
+      if ability.charges then
+        if ability.chargeCooldown <= 0 and ability.charges < ability.maxCharges then
+          ability.chargeCooldown = ability.baseChargeCooldown
+        else
+          ability.chargeCooldown = ability.chargeCooldown - dt
+          if ability.chargeCooldown <= 0 then
+            ability.chargeCooldown = 0
+            ability.charges = math.min(ability.charges + 1, ability.maxCharges)
+          end
+        end
       end
       if ability.active then
         ability:activeUpdate(dt, entity)
         if ability.activationDuration and ability.activationDuration > 0 and ability.activeTimer <= 0 then
           ability:deactivate(entity)
         end
-      elseif ability.charges > 0  and ability:castConditions(entity) ~= nil then
+      elseif ((ability.charges == nil or ability.charges > 0) and (ability.cooldown and ability.cooldown <= 0)) and ability:castConditions(entity) ~= nil then
         if (player == entity and ability:bindCheck()) or (entity.IA and a==entity.IA.cast) then
-          ability:activate(entity)
+          if ability.costs then
+            print("checkCostsAvailability", ability:checkCostsAvailability(entity))
+            if ability:checkCostsAvailability(entity) then
+              ability:activate(entity)
+            end
+          else
+            ability:activate(entity)
+          end
         end
       end
     end

@@ -14,7 +14,6 @@ function gameSetup()
   normalfont = love.graphics.newFont(12)
   bigassfont = love.graphics.newFont(48)
 
-  difficultyCoef = 1
   enemies = {}
   updateTimerClosestEnemy = .2
   addUpdateFunction(function (dt)
@@ -28,13 +27,11 @@ function gameSetup()
         if enemy.dead or enemy.terminated then
           table.remove(enemies, e)
         else
-          enemy.IA.difficultyCoef = difficultyCoef
           if math.dist(player.x, player.y,enemy.x, enemy.y) < dist then
             closest, dist = enemy, math.dist(player.x, player.y,enemy.x, enemy.y)
           end
         end
       end
-      closest.IA.difficultyCoef = 10
     end
   end)
   addDrawFunction(function ()
@@ -107,6 +104,13 @@ function gameSetup()
         love.graphics.setColor(.8, .2, .1, .9)
         love.graphics.rectangle("fill", 3+lifebarWidth*math.max(player.life, 0)/player.maxLife, 0, lifebarWidth*player.healthCutoff/player.maxLife, 5)
       end
+      if player.ressources.mana then
+        local current, max = player.ressources.mana.current, player.ressources.mana.max
+        love.graphics.setColor(.1, .1, .2, .3)
+        love.graphics.rectangle("fill", 3, 6, lifebarWidth, 2)
+        love.graphics.setColor(.1, .1, .8, .7)
+        love.graphics.rectangle("fill", 3, 6, lifebarWidth*current/max, 2)
+      end
       --dash charges display
       if player.abilities and player.abilities.dash then
         for i = 1, player.abilities.dash.maxCharges do
@@ -163,13 +167,15 @@ function gameSetup()
       local x = 10
       for a, ability in pairs(player.abilities) do
         if ability.displayOnUI then
-          table.insert(self.children, {x=x, y=10, width = 130, height = 130, ability = ability,
-          draw = function (self)
-            self.ability:displayOnUI()
-          end,
-          onClick = function (self)
-            print(self.ability.name, "clicked" )
-          end})
+          table.insert(self.children, {
+            x=x, y=10, width = 130, height = 130, ability = ability,
+            draw = function (self)
+              self.ability:displayOnUI()
+            end,
+            onClick = function (self)
+              print(self.ability.name, "clicked" )
+            end
+          })
           x = x + 150
         end
       end
@@ -231,48 +237,48 @@ function gameSetup()
   --       love.graphics.rectangle("fill", ghost.x, ghost.y, math.max(ghost.w, 30), math.max(ghost.h, 30))
   --     end
   --   end})
-  --
-  --
-  --
-  --       --collectibles spawn
-  --       -- addUpdateFunction(function (dt)
-  --       --   if collectibles < 10 and math.random()>.99 then
-  --       --     collectibles = collectibles + 1
-  --       --     table.insert(entities, {
-  --       --       shape = "rectangle",
-  --       --       x = (math.random()-.5)*w, y = (math.random()-.5)*height,
-  --       --       w = 5, h = 5, color = {.2, .8, .4},
-  --       --       collide = function (self, collider)
-  --       --         if collider == player then
-  --       --           collectibles = collectibles - 1
-  --       --           player.life = math.min(player.maxLife, player.life + 1)
-  --       --           table.insert(particuleEffects, {
-  --       --             x=self.x, y=self.y, color = {1, .2, .2}, nudge = 5, size = 3, timeLeft = 1.5,
-  --       --             pluslygon = {-1,-1,  -1,-3,  1,-3,  1,-1,  3,-1,  3,1,  1,1,  1,3,  -1,3,  -1,1,  -3,1,  -3,-1},
-  --       --             draw = function (self)
-  --       --               love.graphics.translate(self.x, self.y)
-  --       --               love.graphics.scale(.5)
-  --       --               love.graphics.setColor(self.color)
-  --       --               local t = love.timer.getTime() % 3600
-  --       --               for i = 1, 4 do
-  --       --                 love.graphics.push()
-  --       --                 love.graphics.translate(math.cos(10*t+i*39)*5, math.cos(12*t+i*22)*5)
-  --       --                 love.graphics.polygon("fill", self.pluslygon)
-  --       --                 love.graphics.pop()
-  --       --               end
-  --       --             end
-  --       --           })
-  --       --           self.terminated = true
-  --       --         end
-  --       --       end
-  --       --     })
-  --       --   end
-  --       -- end)
+
+
+
+        -- collectibles spawn
+        -- addUpdateFunction(function (dt)
+        --   if collectibles < 10 and math.random()>.99 then
+        --     collectibles = collectibles + 1
+        --     table.insert(entities, {
+        --       shape = "rectangle",
+        --       x = (math.random()-.5)*w, y = (math.random()-.5)*height,
+        --       w = 5, h = 5, color = {.2, .8, .4},
+        --       collide = function (self, collider)
+        --         if collider == player then
+        --           collectibles = collectibles - 1
+        --           player.life = math.min(player.maxLife, player.life + 1)
+        --           table.insert(particuleEffects, {
+        --             x=self.x, y=self.y, color = {1, .2, .2}, nudge = 5, size = 3, timeLeft = 1.5,
+        --             pluslygon = {-1,-1,  -1,-3,  1,-3,  1,-1,  3,-1,  3,1,  1,1,  1,3,  -1,3,  -1,1,  -3,1,  -3,-1},
+        --             draw = function (self)
+        --               love.graphics.translate(self.x, self.y)
+        --               love.graphics.scale(.5)
+        --               love.graphics.setColor(self.color)
+        --               local t = love.timer.getTime() % 3600
+        --               for i = 1, 4 do
+        --                 love.graphics.push()
+        --                 love.graphics.translate(math.cos(10*t+i*39)*5, math.cos(12*t+i*22)*5)
+        --                 love.graphics.polygon("fill", self.pluslygon)
+        --                 love.graphics.pop()
+        --               end
+        --             end
+        --           })
+        --           self.terminated = true
+        --         end
+        --       end
+        --     })
+        --   end
+        -- end)
 
   levelDisplayInit()
 
-  passives = {maxLife = 1, maxSpeed = 1, w = 1, h = 1, damage = 1, range = 1, maxCharges = 1, }
-
+  passives = {maxLife = 1, maxSpeed = 1, damage = 1, range = 1, maxCharges = 1}
+  ennemyPassives = {maxLife = .7, maxSpeed = .7, damage = .7, range = .7, maxCharges = 1}
   passiveSkillUI = {
     x = 30, y = 30, width = width - 60, height = height - 60,
     hidden = true, backgroundColor = {.5, teamColors[1][2]*.5, teamColors[1][3]*.5},
@@ -288,7 +294,10 @@ function gameSetup()
       x = x, y= 10, width = 120, height = 120,
       color={math.random(),math.random(),math.random()},
       passive = p,
-      onClick = function (self)  end, onPress = function (self)  passives[self.passive] = passives[self.passive] + 1 end,
+      onClick = function (self)  end,
+      onPress = function (self)
+        passives[self.passive] = passives[self.passive] + 1
+      end,
       draw = function (self)
         love.graphics.setColor(self.color)
         love.graphics.rectangle("fill", 0, 0, self.width, self.height)
@@ -432,18 +441,29 @@ function spawn(enemyArchetype, params)
   if entity.dead then
     entity:onDeath()
   elseif entity.team and entity.team > 1 then
+    if ennemyPassives then
+      for s, stat in pairs(ennemyPassives) do
+        if entity[s] then
+          entity[s] = entity[s] * stat
+        else
+          for a, ability in pairs(entity.abilities) do
+            if entity[s] then
+              entity[s] = entity[s] * stat
+            end
+          end
+        end
+      end
+    end
     table.insert(enemies, entity)
   end
+
   return entity
 end
 
 function newPlayer(params)
   local entity = entitySetup({ableEntityInit,livingEntityInit,movingEntityInit},  {
     --display
-    color = {.4, .6, .2},
     maxLife = 1000,
-    life = 1000,
-    x=0, y=0,
     abilities = {
       shoot = newAbility("shoot"),
       boeingboeingboeing = newAbility("boeingboeingboeing"),

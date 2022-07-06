@@ -5,6 +5,7 @@ enemiesLibrary = {
   meleeTank = function ()
     return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
       archetypeName = "melee tank",
+      name = "melee tank",
       maxSpeed= 250,
       width=10, height = 10,
       color = {.5, .4, .8},
@@ -21,6 +22,7 @@ enemiesLibrary = {
   meleeDps = function ()
     return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
       archetypeName = "melee dps",
+      name = "melee dps",
       maxSpeed= 400,
       color = {.8, .4, .2},
       life = 60,
@@ -37,6 +39,7 @@ enemiesLibrary = {
     local type = math.random(2)
     return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit},{
       archetypeName = "shooter type " .. type,
+      name =  "shooter type " .. type,
       color = (type == 1 and  {.1, .2, .9} or {.9, .3, .1}),
       x=math.random(-width/2, width/2), y=math.random(-height/2, height/2),
       width = (type == 1 and 7 or 5),
@@ -58,8 +61,10 @@ enemiesLibrary = {
   mage = function ()
     return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
       archetypeName = "mage",
+      name = "mage",
       maxSpeed= 400,
       color = {.8, 0, .8},
+      ressources = {mana = {current = 40, max = 40, regenPerSec = 5}},
       maxLife=30,
       abilities = {
         thunderCall = newAbility("thunderCall"),
@@ -72,6 +77,7 @@ enemiesLibrary = {
   meleeKamikaze = function ()
     return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
       archetypeName = "melee kamikaze",
+      name = "melee kamikaze",
       maxSpeed= 150,
       color = {.9, 0, .4},
       maxLife=10,

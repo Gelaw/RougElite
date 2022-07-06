@@ -50,13 +50,13 @@ function basicIA()
           return
         end
         local distance = math.dist(entity.x, entity.y, ia.target.x, ia.target.y)
-        if not ia.target.life or ia.target.dead or distance > ia.aggroRange or math.random()*ia.difficultyCoef > .5 then
+        if not ia.target.life or ia.target.dead or distance > ia.aggroRange or math.random() > .5 then
           ia:switchToTask("idle")
           return
         end
         local choice = nil, nil
         for a, ability in pairs(entity.abilities) do
-          if ability.charges > 0 then
+          if ((ability.charges and ability.charges > 0) or (not ability.charges)) and ((ability.cooldown and ability.cooldown <= 0) or (not ability.cooldown) ) then
             if not choice or (entity.abilities[choice].range < ability.range and (not ability.rangeMin or ability.rangeMin < distance)) then
               choice = a
             end
@@ -97,13 +97,14 @@ function basicIA()
     run = applyParams(newTask(), {
       start = function (self, ia, entity)
         entity.targetAngle = math.random()*2*math.pi
-        local accQ = math.min(math.random() * ia.difficultyCoef, 1)
-        entity.acceleration = {x=accQ*entity.maxAcceleration*math.cos(entity.angle), y=accQ*entity.maxAcceleration*math.sin(entity.angle)}
-        self.timer = .3 * math.min(ia.difficultyCoef, 1)
+        local acc = math.max(.7, math.random())*entity.maxAcceleration
+        entity.acceleration = {x=acc*math.cos(entity.angle), y=acc*math.sin(entity.angle)}
+        self.timer = .3 * math.random()
       end,
       update = function (self, ia, entity, dt)
         self.timer = self.timer - dt
         if self.timer < 0 then
+          entity.acceleration = {x=0, y= 0}
           ia:switchToTask("decision")
         end
       end

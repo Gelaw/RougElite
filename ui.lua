@@ -62,7 +62,6 @@ end
 
 function UIMouseRelease(x, y, button)
   local element = getElementOn(x, y)
-  if element then  print(element , element.onClick , pressed==element) end
   if element and (element.onClick and pressed==element) then
     element:onClick()
   end
