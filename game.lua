@@ -419,15 +419,28 @@ function gameStart()
   math.randomseed(love.timer.getTime())
   for r, room in pairs(rooms) do
     if r == 1 then
-      for i = 1, 3 do
+      for i = 1, 1 do
         local enemyArchetype = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
-        spawn(enemyArchetype, {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2, dead = true})
+        local entity = spawn(enemyArchetype, {maxLife = 10000, life = 10000, x= room.x + (math.random()-.45)*room.w, y=room.y + (math.random()-.45)*room.h, team = 1})
+        entity.room = 1
+        table.insert(entity.updates, function (self, dt)
+          if not self.IA then return end
+          if self.IA.task == "unstarted" then
+            local room = rooms[self.room]
+            local angle = math.angle(self.x, self.y, room.x, room.y)
+            self.acceleration = {x=.5*self.maxAcceleration*math.cos(angle), y=.5*self.maxAcceleration*math.sin(angle)}
+            if math.dist(self.x, self.y, room.x, room.y)<10 and #rooms>self.room then
+              self.speed = {x=0, y=0}
+              self.room = self.room+1
+            end
+          end
+        end)
+        camera.mode = {"follow", entity}
       end
     else
-      if r > 2 then break end
       for i = 1, 3 do
         local enemyArchetype = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
-        spawn(enemyArchetype, {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2})
+        spawn(enemyArchetype, {x= room.x + (math.random()-.45)*room.w, y=room.y + (math.random()-.45)*room.h, team = 2})
       end
     end
   end
@@ -493,5 +506,6 @@ function gameMousePress(x, y, button)
 end
 
 function gameMouseRelease(x, y, button)
+  UIMouseRelease(x, y, button)
   mousePressedOnWorld = false
 end

@@ -6,23 +6,28 @@ function newTask()
   }
 end
 
-function newIA()
+function newIA(entity)
   return {
     task = nil,
-    switchToTask = function (self, newTask, entity)
-      self[self.task]:finish(self, entity)
+    entity = entity,
+    switchToTask = function (self, newTask)
+      self[self.task]:finish(self, self.entity)
       self.task = newTask
-      self[self.task]:start(self, entity)
+      self[self.task]:start(self, self.entity)
     end
   }
 end
 
-function basicIA()
-  return applyParams(newIA(), {
-    difficultyCoef = 1,
+function basicIA(entity)
+  return applyParams(newIA(entity), {
     task = "unstarted", aggroRange = 1300,
     target = nil,
     unstarted = applyParams(newTask(), {
+      start = function (self, ia, entity)
+        if entity then
+          entity.acceleration = {x=0, y=0}
+        end
+      end,
       update = function (self, ia, entity)
         if ia.target and not ia.target.dead then
           ia:switchToTask("idle")
@@ -33,12 +38,10 @@ function basicIA()
     idle = applyParams(newTask(), {
       update = function (self, ia, entity)
         if not ia.target or ia.target.dead then
-          ia:switchToTask("unstarted")
+          ia:switchToTask("unstarted", entity)
           return
         end
-        if math.dist(entity.x, entity.y, ia.target.x, ia.target.y) < ia.aggroRange and math.random()*ia.difficultyCoef > .99 then
-          --turn toward ia.target
-          entity.targetAngle = math.angle(entity.x, entity.y, ia.target.x, ia.target.y)
+        if math.dist(entity.x, entity.y, ia.target.x, ia.target.y) < ia.aggroRange then
           ia:switchToTask("decision")
         end
       end
@@ -50,7 +53,7 @@ function basicIA()
           return
         end
         local distance = math.dist(entity.x, entity.y, ia.target.x, ia.target.y)
-        if not ia.target.life or ia.target.dead or distance > ia.aggroRange or math.random() > .5 then
+        if not ia.target.life or ia.target.dead or distance > ia.aggroRange then
           ia:switchToTask("idle")
           return
         end
@@ -64,15 +67,15 @@ function basicIA()
         end
         if choice then
           ia.choice = choice
-          ia:switchToTask("attack", entity)
+          ia:switchToTask("attack")
         else
-          ia:switchToTask("run", entity)
+          ia:switchToTask("run")
         end
       end
     }),
     attack = applyParams(newTask(), {
       update = function (self, ia, entity)
-        if not ia.target then
+        if not ia.target or ia.target.dead or ia.target.life <= 0 then
           ia:switchToTask("idle")
           return
         end
@@ -80,13 +83,16 @@ function basicIA()
           ia:switchToTask("decision")
           return
         end
-        entity.targetAngle = math.angle(entity.x, entity.y, ia.target.x, ia.target.y)
+        local targetAngle = math.angle(entity.x, entity.y, ia.target.x, ia.target.y)
+        entity.targetAngle = targetAngle
         local distance = math.dist(entity.x, entity.y, ia.target.x, ia.target.y)
-        if distance > entity.abilities[ia.choice].range then
-          entity.acceleration = {x=entity.maxAcceleration*math.cos(entity.angle), y=entity.maxAcceleration*math.sin(entity.angle)}
-        else
-          entity.acceleration = {x=0,y=0}
-          ia.cast = ia.choice
+        if math.angleDiff(targetAngle, entity.angle) < math.rad(10) then
+          if distance > entity.abilities[ia.choice].range then
+            entity.acceleration = {x=entity.maxAcceleration*math.cos(entity.angle), y=entity.maxAcceleration*math.sin(entity.angle)}
+          else
+            entity.acceleration = {x=0,y=0}
+            ia.cast = ia.choice
+          end
         end
       end,
       finish = function (self, ia)
@@ -127,7 +133,7 @@ function IAinit(entity)
   return entity
 end
 
-interIATUtick = 3
+interIATUtick = 1
 local IATUtimer = 0
 function IAtargetingUpdate(dt)
   IATUtimer = IATUtimer - dt
@@ -140,9 +146,11 @@ function IAtargetingUpdate(dt)
           for e2, entity2 in pairs(entities) do
             local distance = math.dist(entity.x, entity.y, entity2.x, entity2.y)
             if entity2.team and entity.team ~= entity2.team and entity2.life and entity2.life > 0 then
-              if not entity.IA.target or entity.IA.distTotarget>distance then
-                entity.IA.target = entity2
-                entity.IA.distTotarget = distance
+              if not wallCollision(entity, entity2) then
+                if not entity.IA.target or entity.IA.distTotarget>distance then
+                  entity.IA.target = entity2
+                  entity.IA.distTotarget = distance
+                end
               end
             end
           end

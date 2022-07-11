@@ -69,8 +69,6 @@ abilitiesLibrary = {
       self.activeTimer = self.activationDuration
       self.active = true
       local x, y = caster.x+ self.distanceToCaster*math.cos(caster.angle), caster.y + self.distanceToCaster*math.sin(caster.angle)
-      local wall = {{x=0, y=0}, {x=0, y=0}}
-      table.insert(walls, wall)
       self.hitbox = applyParams(newEntity(),{
         color = {.2, .2, 1, 1},
         x=x, y=y,
@@ -107,20 +105,11 @@ abilitiesLibrary = {
       applyParams(self.hitbox, {
         x=caster.x+ self.distanceToCaster*math.cos(self.hitbox.angle), y=caster.y + self.distanceToCaster*math.sin(self.hitbox.angle)
       })
-      self.hitbox.wall[1] = {x=self.hitbox.x - .5*self.hitbox.h*math.cos(self.hitbox.angle+.5*math.pi), y=self.hitbox.y - .5*self.hitbox.h*math.sin(self.hitbox.angle+.5*math.pi)}
-      self.hitbox.wall[2] = {x=self.hitbox.x + .5*self.hitbox.h*math.cos(self.hitbox.angle+.5*math.pi), y=self.hitbox.y + .5*self.hitbox.h*math.sin(self.hitbox.angle+.5*math.pi)}
     end,
     deactivate = function (self)
       self.active = false
       self:onCooldownStart()
       self.hitbox.terminated = true
-      local hitWall = self.hitbox.wall
-      for w, wall in pairs(walls) do
-        if wall == hitWall then
-          table.remove(walls, w)
-          return
-        end
-      end
     end,
     bindCheck = function ()
       return (joystick and joystick:isDown(4)) or love.keyboard.isDown("e")
@@ -189,7 +178,7 @@ abilitiesLibrary = {
         if entity.team and entity.team ~= caster.team and entity.life and not entity.dead then
           angle = math.angle(caster.x, caster.y, entity.x, entity.y)
           distance = math.dist(caster.x, caster.y, entity.x, entity.y)
-          deltaAngle = math.pi - math.abs(math.abs(angle - caster.angle) - math.pi);
+          deltaAngle = math.angleDiff(angle, caster.angle)
           if distance <= self.range and deltaAngle < self.angleDelta then
             if not wallCollision(caster, entity) then
               entity:hit(self.damage)
@@ -827,7 +816,6 @@ function ableEntityInit(entity)
       elseif ((ability.charges == nil or ability.charges > 0) and (ability.cooldown and ability.cooldown <= 0)) and ability:castConditions(entity) ~= nil then
         if (player == entity and ability:bindCheck()) or (entity.IA and a==entity.IA.cast) then
           if ability.costs then
-            print("checkCostsAvailability", ability:checkCostsAvailability(entity))
             if ability:checkCostsAvailability(entity) then
               ability:activate(entity)
             end

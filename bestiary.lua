@@ -1,9 +1,6 @@
-
-
 enemiesLibrary = {
-
   meleeTank = function ()
-    return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
+    local entity = entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
       archetypeName = "melee tank",
       name = "melee tank",
       maxSpeed= 250,
@@ -14,13 +11,14 @@ enemiesLibrary = {
         decimatingSmash = newAbility("decimatingSmash"),
         unbreakable = newAbility("unbreakable"),
         absoluteZero = newAbility("absoluteZero"),
-      },
-      IA = basicIA()
+      }
     })
+    entity.IA = basicIA(entity)
+    return entity
   end,
 
   meleeDps = function ()
-    return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
+    local entity = entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
       archetypeName = "melee dps",
       name = "melee dps",
       maxSpeed= 400,
@@ -30,14 +28,15 @@ enemiesLibrary = {
       abilities = {
         autohit = newAbility("meleeAutoHit"),
         dash = newAbility("dash"),
-      },
-      IA = basicIA()
+      }
     })
+    entity.IA = basicIA(entity)
+    return entity
   end,
 
   shooter = function ()
     local type = math.random(2)
-    return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit},{
+    local entity = entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit},{
       archetypeName = "shooter type " .. type,
       name =  "shooter type " .. type,
       color = (type == 1 and  {.1, .2, .9} or {.9, .3, .1}),
@@ -50,16 +49,16 @@ enemiesLibrary = {
         bouncingBomb = applyParams(newAbility(), abilitiesLibrary.bouncingBomb),
         shoot = applyParams(newAbility(), abilitiesLibrary.shoot)
       },
-      --behavior
-      IA = basicIA(),
       --necessary for base collision detection to consider this entity
       team = 2,
       maxLife = 30+20*type,
     })
+    entity.IA = basicIA(entity)
+    return entity
   end,
 
   mage = function ()
-    return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
+    local entity = entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
       archetypeName = "mage",
       name = "mage",
       maxSpeed= 400,
@@ -69,13 +68,14 @@ enemiesLibrary = {
       abilities = {
         thunderCall = newAbility("thunderCall"),
         arc = newAbility("arc")
-      },
-      IA = basicIA()
+      }
     })
+    entity.IA = basicIA(entity)
+    return entity
   end,
 
   meleeKamikaze = function ()
-    return entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
+    local entity = entitySetup({IAinit,ableEntityInit,livingEntityInit,movingEntityInit}, {
       archetypeName = "melee kamikaze",
       name = "melee kamikaze",
       maxSpeed= 150,
@@ -86,8 +86,9 @@ enemiesLibrary = {
       abilities = {
         cupcakeTrap = newAbility("cupcakeTrap"),
         valkyrie = newAbility("valkyrie")
-      },
-      IA = basicIA()
+      }
     })
+    entity.IA = basicIA(entity)
+    return entity
   end
 }

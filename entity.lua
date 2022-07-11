@@ -31,6 +31,14 @@ function newEntity()
         end
       end
       love.graphics.rotate(-(self.angle+camera.angle))
+      if self.speed then
+        love.graphics.setColor(0, 1, 0, .5)
+        love.graphics.line(0, 0, 200*self.speed.x/1000, 200*self.speed.y/1000)
+      end
+      if self.acceleration then
+        love.graphics.setColor(0, 0, 1, .5)
+        love.graphics.line(0, 0, 200*self.acceleration.x/self.maxAcceleration, 200*self.acceleration.y/self.maxAcceleration)
+      end
       if self.IA then
         if self.IA.target then
           local angle = math.angle(self.x, self.y, self.IA.target.x, self.IA.target.y)
@@ -38,6 +46,12 @@ function newEntity()
         end
         love.graphics.setColor( 0, 0, 0)
         love.graphics.print(self.team.."\t"..self.IA.task)
+      end
+      if self.team == 1 and self.life then
+        love.graphics.print(self.life.." /"..self.maxLife, 0, 15)
+      end
+      if self.room then
+
       end
     end,
     update = function (self, dt)
@@ -87,6 +101,9 @@ function movingEntityInit(entity)
     self.x = newPosition.x
     self.y = newPosition.y
     self.angle = newPosition.angle
+  end
+  entity.onWallCollision = function (self, wall)
+    self.speed = {x=0, y=0}
   end
   table.insert(entity.updates, function (self, dt)
     if entity.stuck then
