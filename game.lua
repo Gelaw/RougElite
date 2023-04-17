@@ -142,7 +142,7 @@ function gameSetup()
           local distance = math.dist(ghost.x, ghost.y, entity.x, entity.y)
           love.graphics.push()
           if entity.archetypeName then
-            love.graphics.print(entity.archetypeName, entity.x-camera.x-.5*normalfont:getWidth(entity.archetypeName), entity.y-camera.y-15)
+            love.graphics.print(entity.archetypeName, entity.x-ghost.x-.5*normalfont:getWidth(entity.archetypeName), entity.y-ghost.y-15)
           end
           love.graphics.rotate(angle)
           love.graphics.arc("line", "open", distance, 0, 20, math.rad(15), 2*math.pi/3 - math.rad(15))
@@ -417,9 +417,10 @@ function gameStart()
   end
 
   math.randomseed(love.timer.getTime())
+  mode = "IAPlaytesting"
   for r, room in pairs(rooms) do
     if r == 1 then
-      for i = 1, 1 do
+      if mode == "IAPlaytesting" then
         local enemyArchetype = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
         local entity = spawn(enemyArchetype, {maxLife = 10000, life = 10000, x= room.x + (math.random()-.45)*room.w, y=room.y + (math.random()-.45)*room.h, team = 1})
         entity.room = 1
@@ -432,10 +433,18 @@ function gameStart()
             if math.dist(self.x, self.y, room.x, room.y)<10 and #rooms>self.room then
               self.speed = {x=0, y=0}
               self.room = self.room+1
+            elseif wallCollision(self, room) then
+              self.speed = {x=0, y=0}
+              self.room = locatePoint(self.x, self.y)
             end
           end
         end)
         camera.mode = {"follow", entity}
+      else
+        for i = 1, 3 do
+          local enemyArchetype = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
+          spawn(enemyArchetype, {x= room.x + (math.random()-.5)*room.w, y=room.y + (math.random()-.5)*room.h, team = 2, dead = true})
+        end
       end
     else
       for i = 1, 3 do

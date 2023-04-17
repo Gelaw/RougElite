@@ -273,8 +273,8 @@ function playerInit(entity)
   table.insert(player.updates,
   function (self, dt)
     local mx, my = love.mouse.getPosition()
-    local angle = math.angle(.5*width, .5*height, mx, my)
-    local distance = math.dist(.5*width, .5*height, mx, my)
+    local angle = math.angle(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)
+    local distance = math.dist(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)
     if love.mouse.isDown(1) and mousePressedOnWorld then
       q = math.min(1, distance/100)
       self.acceleration ={x=q*self.maxAcceleration * math.cos(angle),y=q*self.maxAcceleration * math.sin(angle)}
@@ -344,8 +344,8 @@ function newGhost(params)
       end
       if love.mouse.isDown(1) and mousePressedOnWorld then
         mx, my = love.mouse.getPosition()
-        angle = math.angle(.5*width, .5*height, mx, my)
-        q = math.min(1, math.dist(.5*width, .5*height, mx, my)/100)
+        angle = math.angle(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)
+        q = math.min(1, math.dist(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)/100)
         ax, ay = q*self.maxAcceleration * math.cos(angle), q*self.maxAcceleration * math.sin(angle)
       end
       --speed, position and orientation calculations

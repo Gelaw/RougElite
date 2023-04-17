@@ -93,6 +93,8 @@ function basicIA(entity)
             entity.acceleration = {x=0,y=0}
             ia.cast = ia.choice
           end
+        else
+          entity.angle =  entity.angle + math.min(math.angleDiff(targetAngle, entity.angle), .3)
         end
       end,
       finish = function (self, ia)

@@ -31,7 +31,7 @@ function levelSetup()
   baseRoomSize = 300
   safeLoadAndRun("baselevel.file")
   love.filesystem.setIdentity("levelEditor")
-  safeLoadAndRun("level.file")
+  -- safeLoadAndRun("level.file")
   calculate()
   generateWalls()
 end
@@ -102,6 +102,14 @@ function generateWalls()
   end
 end
 
+function locatePoint(x, y)
+  for r, room in pairs(levelRooms) do
+    if room.x - room.w/2 < x and room.x + room.w/2 > x and room.y - room.h/2 < y and room.y + room.h/2 > y then
+      return r
+    end
+  end
+  return -1
+end
 
 function addRoom(p, w, h, doors)
   local doors = doors or {}
