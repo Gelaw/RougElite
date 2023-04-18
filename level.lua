@@ -123,7 +123,7 @@ function addRoom(p, w, h, doors)
   return room
 end
 
-basedoorWidth = 1
+basedoorWidth = 3
 
 function addWall(p1, p2, doors)
     table.sort(doors, function(a, b) return a.c < b.c end)

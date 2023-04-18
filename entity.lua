@@ -31,13 +31,15 @@ function newEntity()
         end
       end
       love.graphics.rotate(-(self.angle+camera.angle))
-      if self.speed then
-        love.graphics.setColor(0, 1, 0, .5)
-        love.graphics.line(0, 0, 200*self.speed.x/1000, 200*self.speed.y/1000)
-      end
-      if self.acceleration then
-        love.graphics.setColor(0, 0, 1, .5)
-        love.graphics.line(0, 0, 200*self.acceleration.x/self.maxAcceleration, 200*self.acceleration.y/self.maxAcceleration)
+      if debugSpeedAcc then
+        if self.speed then
+          love.graphics.setColor(0, 1, 0, .5)
+          love.graphics.line(0, 0, 200*self.speed.x/1000, 200*self.speed.y/1000)
+        end
+        if self.acceleration then
+          love.graphics.setColor(0, 0, 1, .5)
+          love.graphics.line(0, 0, 200*self.acceleration.x/self.maxAcceleration, 200*self.acceleration.y/self.maxAcceleration)
+        end
       end
       if self.IA then
         if self.IA.target then
