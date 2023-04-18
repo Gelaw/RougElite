@@ -274,6 +274,7 @@ function playerInit(entity)
   player.IA = nil
   table.insert(player.updates,
   function (self, dt)
+
     local mx, my = love.mouse.getPosition()
     local angle = math.angle(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)
     local distance = math.dist(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)
@@ -283,7 +284,17 @@ function playerInit(entity)
     else
       self.acceleration = {x=0, y=0}
     end
-
+    --if gamepad is connected, use left joystick as input
+    if joystick then
+      a1, a2, a3 = joystick:getAxes()
+      --check if joystick is outside of deadzone (TODO later: parameter 0.3 to be extrated and made modifiable once parameter norm in place)
+      if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
+        self.acceleration.x, self.acceleration.y = self.maxAcceleration*a1*math.abs(a1), self.maxAcceleration*a2*math.abs(a2)
+        if math.abs(self.speed.x)>0 or math.abs(self.speed.y)>0 then
+          self.angle = -math.atan2(self.speed.x, self.speed.y)+math.rad(90)
+        end
+      end
+    end
     self.targetAngle = angle
     --camera zoom control
     -- variables set in "cameraSetup()" method

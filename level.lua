@@ -31,7 +31,7 @@ function levelSetup()
   baseRoomSize = 300
   safeLoadAndRun("baselevel.file")
   love.filesystem.setIdentity("levelEditor")
-  -- safeLoadAndRun("level.file")
+  safeLoadAndRun("level.file")
   calculate()
   generateWalls()
 end
