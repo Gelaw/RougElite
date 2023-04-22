@@ -1,0 +1,3 @@
+To use the level particule editor:
+Open a new project folder in atom with this folder, and launch it.
+open and edit editor.lua, it will be loaded everytime when all particule effects are over
