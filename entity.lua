@@ -5,7 +5,7 @@ function newEntity()
     name = "entity",
     shape = "rectangle",
     color = {1, .7, .9},
-    x=10, y=10, z=0, w=5, h=5, angle=0,
+    x=0, y=0, z=0, w=5, h=5, angle=0,
     updates = {},
     draw = function (self)
       love.graphics.translate(self.x, self.y)
@@ -51,9 +51,6 @@ function newEntity()
       end
       if self.team == 1 and self.life then
         love.graphics.print(self.life.." /"..self.maxLife, 0, 15)
-      end
-      if self.room then
-
       end
     end,
     update = function (self, dt)

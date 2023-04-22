@@ -29,7 +29,7 @@ function love.keypressed(key, scancode, isrepeat)
       player.dead = true
       player:onDeath()
     else
-      newPlayer({x=ghost.x, y=ghost.y})
+      newCheatPlayer({x=ghost.x, y=ghost.y})
       ghost.terminated = true
       ghost = nil
     end
@@ -40,9 +40,13 @@ function love.keypressed(key, scancode, isrepeat)
   if key == "m" then
     levelSetup()
   end
-  if passiveSkillUI and (key == "p" or key == "tab") then
+  if passiveSkillUI and ( key == "tab") then
     passiveSkillUI.hidden = not passiveSkillUI.hidden
   end
+  if monsterdexUI and ( key == "p") then
+    monsterdexUI.hidden = not monsterdexUI.hidden
+  end
+
 end
 
 function love.wheelmoved(x, y)

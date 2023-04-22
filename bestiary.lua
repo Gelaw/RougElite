@@ -40,7 +40,7 @@ enemiesLibrary = {
       archetypeName = "shooter type " .. type,
       name =  "shooter type " .. type,
       color = (type == 1 and  {.1, .2, .9} or {.9, .3, .1}),
-      x=math.random(-width/2, width/2), y=math.random(-height/2, height/2),
+      x=0, y=0,
       width = (type == 1 and 7 or 5),
       height = (type == 1 and 5 or 7),
       maxAcceleration = math.random(1200, 1500)*type,

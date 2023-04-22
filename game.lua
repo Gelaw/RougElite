@@ -243,6 +243,39 @@ function gameSetup()
     x = x + child.width + 10
   end
   table.insert(uis, passiveSkillUI)
+
+  monsterdexUI = {
+    x = 30, y = 30, width = width - 60, height = height - 60,
+    hidden = true, backgroundColor = {.5, .5, .5},
+    children = {},
+    draw = function (self)
+      love.graphics.setColor(self.backgroundColor)
+      love.graphics.rectangle("fill", 0, 0, self.width, self.height)
+    end
+  }
+  local x = 10
+  for e, enemy in pairs(enemiesLibrary) do
+    local entity = enemy()
+    entity.IA = nil
+    entity.team = nil
+    child = {
+      x = x, y= 10, width = 300, height = 300,
+      color={math.random(),math.random(),math.random()},
+      entity = entity,
+      draw = function (self)
+        love.graphics.setColor(self.color)
+        love.graphics.rectangle("fill", 0, 0, self.width, self.height)
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.print(self.entity.archetypeName)
+        love.graphics.translate(self.width/2, self.height/2)
+        love.graphics.scale(15, 15)
+        self.entity:draw()
+      end
+    }
+    table.insert(monsterdexUI.children, child)
+    x = x + child.width + 10
+  end
+  table.insert(uis, monsterdexUI)
 end
 
 function gameStart()
@@ -383,7 +416,6 @@ function spawn(enemyArchetype, params)
         end
       end
     end
-    table.insert(enemies, entity)
   end
 
   return entity
