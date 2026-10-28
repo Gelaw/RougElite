@@ -58,6 +58,12 @@ globals = {
   -- main.lua
   "projectSetup",
 
+  -- ==== adapter interfaces (injected by adapters/love_adapter.lua,
+  --      defaulted in core/base.lua, doubled in spec/game_loader.lua) ====
+  "G", "getTimestamp", "random",
+  "loadLevelFile", "writeLevelFile", "refreshJoystick",
+  "Mouse", "Keyboard", "Joystick",
+
   -- ==== registries & shared runtime state ====
   "draws", "updates", "uis", "bindings", "camera", "joystickButtons",
   "player", "ghost", "enemies", "entities", "particuleEffects",
@@ -81,7 +87,7 @@ globals = {
 -- after tooling installation and must never be linted.
 -- (CI runs `luacheck *.lua` — this list is the fallback for bare `luacheck .`)
 include_files = {
-  "*.lua",
+  "main.lua", "core/*.lua", "domain/*.lua", "adapters/*.lua",
   ".luacheckrc",
   -- spec/ is excluded: specs legitimately reference the game's globals
   -- as their subjects; they are validated by execution (busted), not lint.

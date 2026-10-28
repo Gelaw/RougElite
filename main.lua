@@ -1,73 +1,28 @@
 --------------------------------------------------------------------
--- main.lua : LÖVE entry point, module requires and input dispatch
+-- main.lua : LÖVE entry point — wiring only.
 --
--- Debug keys: escape (quit/close UI), k (kill player / cheat
--- respawn from ghost), h (hitboxes), m (regen level),
--- tab (passive skills), p (monsterdex).
+-- Load order (later modules assume earlier ones):
+--   1. core/*      engine: registries, camera, entities, IA, level, game
+--   2. domain/*    game content: abilities, bestiary
+--   3. adapters/*  LÖVE implementation of the engine interfaces + UI
+--
+-- core/ and domain/ contain NO love.* references: they talk to the
+-- adapter interfaces (G, getTimestamp, random, loadLevelFile, Mouse,
+-- Keyboard, Joystick...). See AGENTS.md for the full map.
 --------------------------------------------------------------------
 
-require "base"
-require "level"
-require "entity"
-require "bestiary"
-require "ia"
-require "ability"
-require "game"
-require "ui"
+require "core.base"
+require "core.level"
+require "core.entity"
+require "domain.bestiary"
+require "core.ia"
+require "domain.ability"
+require "core.game"
+require "adapters.ui"
+require "adapters.love_adapter"
 
 function projectSetup()
   gameSetup()
   gameStart()
   safeLoadAndRun("editableScript.lua")
-end
-
-function love.joystickpressed(joystick, button)
-end
-
-function love.keypressed(key, scancode, isrepeat)
-  if key == "escape" then
-    if not passiveSkillUI.hidden then
-      passiveSkillUI.hidden = true
-    else
-      love.event.quit()
-    end
-  end
-  if key == "k"  then
-    if player and not player.dead then
-      player.dead = true
-      player:onDeath()
-    elseif ghost then
-      newCheatPlayer({x=ghost.x, y=ghost.y})
-      ghost.terminated = true
-      ghost = nil
-    end
-  end
-  if key == "h" then
-    showHitboxes = not showHitboxes
-  end
-  if key == "m" then
-    levelSetup()
-  end
-  if passiveSkillUI and ( key == "tab") then
-    passiveSkillUI.hidden = not passiveSkillUI.hidden
-  end
-  if monsterdexUI and ( key == "p") then
-    monsterdexUI.hidden = not monsterdexUI.hidden
-  end
-
-end
-
-function love.wheelmoved(x, y)
-  -- camera.angle = camera.angle + y*0.1
-end
-
-function love.mousemoved(x, y, dx, dy)
-end
-
-function love.mousepressed(x, y, button, isTouch)
-  gameMousePress(x, y, button)
-end
-
-function love.mousereleased(x, y, button, isTouch)
-  gameMouseRelease(x, y, button)
 end

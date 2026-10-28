@@ -1,12 +1,11 @@
 --------------------------------------------------------------------
--- spec/game_loader.lua : loads the game modules in main.lua order
--- into the current (test) environment, with the love stub injected.
+-- spec/game_loader.lua : loads the engine into the test environment,
+-- with the love stub and pure-Lua test doubles for the adapter
+-- interfaces (G, Mouse, Keyboard, Joystick, getTimestamp, random).
 --
--- Call loadGame() from a spec file; it loads all root modules exactly
--- once per busted process and returns the environment table (_G).
---
--- Modules define globals (documented in .luacheckrc); tests read
--- them from _G after loading.
+-- core/ and domain/ contain NO love.* references: tests exercise the
+-- engine directly. adapters/ are NOT loaded in unit tests (they are
+-- LÖVE-specific and covered by the CI smoke test instead).
 --------------------------------------------------------------------
 
 require("spec.love_stub")
@@ -17,18 +16,38 @@ local function loadGame()
   if loaded then return _G end
   loaded = true
 
-  -- Minimal prerequisites normally created by base.lua's init()
-  -- (which runs in love.load, unavailable in tests).
+  -- Test doubles for the adapter interfaces (normally provided by
+  -- adapters/love_adapter.lua at runtime).
+  _G.G = _G.G or setmetatable({}, {
+    __index = function(t, k)
+      local fn = function() return nil end
+      rawset(t, k, fn)
+      return fn
+    end
+  })
+  _G.getTimestamp = _G.getTimestamp or function() return 0 end
+  _G.Mouse = _G.Mouse or {
+    getPosition = function() return 0, 0 end,
+    isDown = function() return false end,
+  }
+  _G.Keyboard = _G.Keyboard or {
+    isDown = function() return false end,
+  }
+  _G.Joystick = _G.Joystick or {
+    getJoysticks = function() return nil end,
+  }
+
+  -- Minimal prerequisites normally created by the LÖVE adapter's
+  -- love.load (unavailable in tests).
   _G.entities = {}
   _G.particuleEffects = {}
+  _G.enemies = {}
   _G.walls = {}
   _G.uis = {}
-  _G.enemies = {} -- normally created by gameSetup()
   _G.width = 800
   _G.height = 600
   -- projectSetup is normally defined by main.lua, which we do not
-  -- load (it registers LÖVE callbacks); provide a no-op so base.lua's
-  -- love.load can be skipped entirely.
+  -- load (it requires adapters); provide a no-op instead.
   if _G.projectSetup == nil then
     _G.projectSetup = function() end
   end
@@ -39,9 +58,12 @@ local function loadGame()
     math.atan2 = function(y, x) return math.atan(y, x) end
   end
 
+  -- Engine modules in main.lua's load order. adapters/ui.lua is
+  -- included (it works with the love stub); only love_adapter.lua —
+  -- which registers LÖVE callbacks — is excluded.
   local modules = {
-    "base", "level", "entity", "bestiary",
-    "ia", "ability", "game", "ui",
+    "core/base", "core/level", "core/entity", "domain/bestiary",
+    "core/ia", "domain/ability", "core/game", "adapters/ui",
   }
   for _, m in ipairs(modules) do
     local chunk = assert(loadfile(m .. ".lua"), "cannot load " .. m .. ".lua")

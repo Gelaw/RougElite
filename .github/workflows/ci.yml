@@ -25,9 +25,10 @@ jobs:
       - name: Run luacheck
         run: |
           luarocks install luacheck
-          # Lint only the root game code (not .luarocks/, spec/ or the
-          # editors whose base.lua copies have diverged).
-          luacheck *.lua
+          # Lint the game code (core/, domain/, adapters/, main.lua) —
+          # not .luarocks/, spec/ or the editors whose base.lua copies
+          # have diverged.
+          luacheck main.lua core domain adapters
 
   busted:
     name: Busted (unit tests)

@@ -29,19 +29,25 @@ love particuleEmiterEditor
 
 ## Directory Overview
 ```
-ability.lua             -- ability definitions
-base.lua                -- shared utilities and drawing helpers
+main.lua                -- entry point: module wiring only
+core/                   -- engine (no LÖVE references)
+  base.lua              -- registries, camera, entity manager, math helpers
+  level.lua             -- level generation and collision
+  entity.lua            -- entity system (mixins)
+  ia.lua                -- basic AI routines
+  game.lua              -- game setup, spawning, HUD
+domain/                 -- game content (no LÖVE references)
+  ability.lua           -- ability definitions
+  bestiary.lua          -- enemy definitions
+adapters/               -- LÖVE2D implementation of the engine interfaces
+  love_adapter.lua      -- graphics/input/time/filesystem + LÖVE callbacks
+  ui.lua                -- UI widgets and menus
 baselevel.file          -- sample level data
-bestiary.lua            -- enemy definitions
 editableScript.lua      -- additional runtime script
-entity.lua              -- entity system
-fioriture.lua           -- particle and visual effects
-ia.lua                  -- basic AI routines
-level.lua               -- level management
-levelEditor/            -- level editing tool
-main.lua                -- LÖVE entry point
-particuleEmiterEditor/  -- particle emitter editor
-ui.lua                  -- UI widgets and menus
+fioriture.lua           -- particle and visual effects (mostly commented)
+spec/                   -- busted unit tests (see CONTRIBUTING.md)
+levelEditor/            -- level editing tool (standalone)
+particuleEmiterEditor/  -- particle emitter editor (standalone)
 ```
 
 With LÖVE installed you can run or modify any of these components directly. Enjoy exploring the project!

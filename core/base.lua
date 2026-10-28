@@ -1,12 +1,43 @@
 --------------------------------------------------------------------
--- base.lua : shared utilities, game loop, camera and math helpers
--- Loaded first by main.lua. Every other module builds on these.
+-- core/base.lua : engine core — registries, camera, entity manager,
+-- math and geometry helpers. NO love.* references: rendering goes
+-- through the injected `G` interface (adapters/render.lua), time and
+-- randomness through `getTimestamp`/`random` (adapters/love_adapter).
 --------------------------------------------------------------------
 
 --------------------------------------------------------------------
 -- Config
 --------------------------------------------------------------------
 joystickButtons = {"A","B","X","Y","LB","RB", "select", "start", "LJ", "RJ"}
+
+--------------------------------------------------------------------
+-- Adapter injection points
+-- These are replaced by the LÖVE adapter at startup (and by test
+-- doubles in spec/). Defaults are no-op safe.
+--------------------------------------------------------------------
+
+-- Rendering interface (G = graphics). Must expose the love.graphics
+-- functions used by draw callbacks: push/pop/translate/rotate/scale/
+-- setColor/rectangle/circle/line/polygon/arc/print/origin/...
+G = G or setmetatable({}, {__index = function() return function() end end})
+
+-- Wall clock (seconds) for cooldowns, shake, HUD timers.
+getTimestamp = getTimestamp or function() return 0 end
+
+-- RNG entry points (love.math.random equivalents).
+random = random or function(a, b)
+  if a == nil then return math.random() end
+  if b == nil then return math.random(a) end
+  return math.random(a, b)
+end
+
+-- Level file IO (love.filesystem backed; adapters override).
+loadLevelFile = loadLevelFile or function(name)
+  return loadfile and loadfile(name) or nil, "loadLevelFile unavailable"
+end
+writeLevelFile = writeLevelFile or function(text)
+  return false, "writeLevelFile unavailable"
+end
 
 --------------------------------------------------------------------
 -- Table helpers
@@ -67,11 +98,11 @@ camera = {
     local shaker = self.shaker
     if shaker.steps[shaker.n] then
       local c = shaker.stepTimer - shaker.steps[shaker.n].time
-      love.graphics.translate(c*shaker.steps[shaker.n].dx, c*shaker.steps[shaker.n].dy)
+      G.translate(c*shaker.steps[shaker.n].dx, c*shaker.steps[shaker.n].dy)
     end
-    love.graphics.rotate(self.angle)
-    love.graphics.scale(self.scale, self.scale)
-    love.graphics.translate( - self.x, - self.y)
+    G.rotate(self.angle)
+    G.scale(self.scale, self.scale)
+    G.translate( - self.x, - self.y)
   end,
   update = function (self, dt)
     local shaker = self.shaker
@@ -106,7 +137,7 @@ function cameraShake(intensity, duration, pattern)
   if not pattern then
     camera.shaker.shakeTimer = duration
     for i = 1, 10 do
-      camera.shaker.steps[i] = { dx = math.random(-1,1)*intensity/2, dy = math.random(-1, 1)*intensity/2, time = 0.1}
+      camera.shaker.steps[i] = { dx = random(-1,1)*intensity/2, dy = random(-1, 1)*intensity/2, time = 0.1}
     end
   else
     --Named shake patterns (left-right, crossing the screen, etc) to be implemented
@@ -120,31 +151,31 @@ end
 -- Default draws
 --------------------------------------------------------------------
 function basicParticuleEffectDraw(pe)
-  love.graphics.setColor(pe.color)
-  love.graphics.translate(pe.x, pe.y)
-  local t = love.timer.getTime()
+  G.setColor(pe.color)
+  G.translate(pe.x, pe.y)
+  local t = getTimestamp()
   for i = 1, 8 do
-    love.graphics.push()
-    love.graphics.translate(math.cos(60*t+10*i)*pe.nudge/2, math.sin(40*t+60*i)*pe.nudge/2)
-    love.graphics.rotate(math.sin(t + 69*i))
-    love.graphics.polygon("fill", {pe.size, 0, 0, pe.size, -pe.size, 0, 0, -pe.size})
-    love.graphics.pop()
+    G.push()
+    G.translate(math.cos(60*t+10*i)*pe.nudge/2, math.sin(40*t+60*i)*pe.nudge/2)
+    G.rotate(math.sin(t + 69*i))
+    G.polygon("fill", {pe.size, 0, 0, pe.size, -pe.size, 0, 0, -pe.size})
+    G.pop()
   end
 end
 
 function basicEntityDraw(entity)
   if entity.color then
-    love.graphics.setColor(entity.color)
+    G.setColor(entity.color)
   else
-    love.graphics.setColor({0.8,0.3,1})
+    G.setColor({0.8,0.3,1})
   end
-  love.graphics.translate(entity.x, entity.y)
-  if entity.angle then love.graphics.rotate(entity.angle) end
+  G.translate(entity.x, entity.y)
+  if entity.angle then G.rotate(entity.angle) end
   if entity.shape == "rectangle" then
     local w, h = entity.w or entity.width, entity.h or entity.height
-    love.graphics.rectangle("fill", -w/2, -h/2, w, h)
+    G.rectangle("fill", -w/2, -h/2, w, h)
   elseif entity.shape == "circle" then
-    love.graphics.circle("fill", 0, 0, entity.radius)
+    G.circle("fill", 0, 0, entity.radius)
   end
 end
 
@@ -175,13 +206,13 @@ local function addEntitiesLayer()
     for e, entity in pairs(entities) do
       if math.abs(entity.x  - camera.x) <= .75*(width)/camera.scale
       and math.abs(entity.y - camera.y) <= .75*(height)/camera.scale then
-        love.graphics.push()
+        G.push()
         if entity.draw then
           entity:draw()
         else
           basicEntityDraw(entity)
         end
-        love.graphics.pop()
+        G.pop()
       end
     end
   end, 5)
@@ -234,13 +265,13 @@ local function addParticuleEffectsLayer()
     for pe, particuleEffect in pairs(particuleEffects) do
       if math.abs(particuleEffect.x  - camera.x) <= .75*(width)/camera.scale
       and math.abs(particuleEffect.y - camera.y) <= .75*(height)/camera.scale then
-        love.graphics.push()
+        G.push()
         if particuleEffect.draw then
           particuleEffect:draw()
         else
           basicParticuleEffectDraw(particuleEffect)
         end
-        love.graphics.pop()
+        G.pop()
       end
     end
   end, 6)
@@ -257,55 +288,23 @@ local function addParticuleEffectsLayer()
 end
 
 --------------------------------------------------------------------
--- Init & LÖVE callbacks
+-- Engine init
 --------------------------------------------------------------------
 function init()
-  love.window.setMode(0, 0)
-  width  = love.graphics.getWidth()
-  height = love.graphics.getHeight()
-  love.graphics.setFont(love.graphics.newFont(11))
-  love.graphics.setBackgroundColor(.4, .4, .4)
+  width  = width or 800
+  height = height or 600
+  entities = nil -- recreated by addEntitiesLayer
   addEntitiesLayer()
   addEntitiesCollisionUpdate()
   addParticuleEffectsLayer()
 end
 
-function love.load(arg)
-  init()
-  projectSetup()
-end
-
-function love.draw()
-  love.graphics.translate(width/2, height/2)
-  camera:apply()
-  for l, layer in pairs(draws) do
-    for d, draw in pairs(layer) do
-      if type(draw) ~= "function" then
-        love.event.quit()
-      end
-      love.graphics.push()
-      draw()
-      love.graphics.pop()
-    end
-  end
-end
-
-function love.update(dt)
-  if gameover then return end
-  for u, update in pairs(updates) do
-    if type(update) ~= "function" then
-      love.event.quit()
-    end
-    update(dt)
-  end
-  camera:update(dt)
-end
-
 -- Loads and runs a Lua file without crashing the game on error
--- (used for editableScript.lua and level files).
+-- (used for editableScript.lua and level files). The actual loading
+-- goes through the adapter-provided loadLevelFile; tests inject fakes.
 function safeLoadAndRun(name)
   local ok, chunk, result
-  ok, chunk = pcall( love.filesystem.load, name )
+  ok, chunk = pcall(loadLevelFile, name)
   if not ok then
     -- print('The following error happened: ' .. tostring(chunk))
   else
@@ -324,7 +323,7 @@ end
 function math.averageAngles(...)
   local x,y = 0,0
   for i=1,select('#',...) do local a= select(i,...) x, y = x+math.cos(a), y+math.sin(a) end
-  return math.atan2(y, x)
+  return math.atan2 and math.atan2(y, x) or math.atan(y, x)
 end
 
 -- Returns the distance between two points.
@@ -336,7 +335,11 @@ function math.angleDiff(a1, a2)
 end
 
 -- Returns the angle between two points.
-function math.angle(x1,y1, x2,y2) return math.atan2(y2-y1, x2-x1) end
+function math.angle(x1,y1, x2,y2)
+  local dx, dy = x2-x1, y2-y1
+  if math.atan2 then return math.atan2(dy, dx) end
+  return math.atan(dy, dx)
+end
 
 -- Returns the closest multiple of 'size' (defaulting to 10).
 function math.multiple(n, size) size = size or 10 return math.round(n/size)*size end
@@ -358,13 +361,13 @@ function math.normalize(x,y) local l=(x*x+y*y)^.5 if l==0 then return 0,0,0 else
 function math.round(n, deci) deci = 10^(deci or 0) return math.floor(n*deci+.5)/deci end
 
 -- Randomly returns either -1 or 1.
-function math.rsign() return love.math.random(2) == 2 and 1 or -1 end
+function math.rsign() return random(2) == 2 and 1 or -1 end
+
+-- Gives a precise random decimal number given a minimum and maximum.
+function math.prandom(min, max) return random() * (max - min) + min end
 
 -- Returns 1 if number is positive, -1 if it's negative, or 0 if it's 0.
 function math.sign(n) return n>0 and 1 or n<0 and -1 or 0 end
-
--- Gives a precise random decimal number given a minimum and maximum.
-function math.prandom(min, max) return love.math.random() * (max - min) + min end
 
 --------------------------------------------------------------------
 -- Geometry

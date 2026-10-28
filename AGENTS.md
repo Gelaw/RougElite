@@ -14,25 +14,44 @@ love particuleEmiterEditor  # particle emitter editor (hot-reloads editor.lua)
 
 There is no build system and no external dependency: only LÖVE2D.
 
-## Module map (load order matters)
+## Module map (core / adapter / domain split)
 
-`main.lua` requires modules in this order; later modules assume earlier
-ones are loaded:
+The codebase follows a ports-and-adapters layout. **core/ and domain/
+contain NO `love.*` references**: they talk to adapter interfaces only.
+This keeps the engine testable without LÖVE and portable to other
+frameworks (a port = one new adapters/ directory).
 
-1. `base.lua` — game loop (`love.update`/`love.draw`), 9-layer draw registry,
-   update registry, camera (with screen-shake), safe file loading, math and
-   geometry helpers. Defines the global `camera` table.
-2. `level.lua` — room/wall generation, wall collision (`wallCollision`),
-   point location (`locatePoint`).
-3. `entity.lua` — `newEntity()` and the mixins `movingEntityInit`,
-   `livingEntityInit`, `playerInit`, `newGhost`, composed via `entitySetup`.
-4. `bestiary.lua` — `enemiesLibrary`: enemy archetypes (factories).
-5. `ia.lua` — state-machine AI (`newIA`, `basicIA`, tasks as tables).
-6. `ability.lua` — `abilitiesLibrary` + `newAbility(name)`; cooldowns, costs,
-   hitboxes, projectile logic.
-7. `game.lua` — `gameSetup`/`gameStart` (called by `projectSetup` in
-   `main.lua`), spawning, HUD, UIs, mouse dispatch.
-8. `ui.lua` — generic UI widgets and hit-testing.
+```
+main.lua          wiring only: requires modules in order
+core/             engine (pure logic + injected rendering interface)
+  base.lua        registries (9 draw layers, updates), camera, entity
+                  manager, math/geometry, adapter injection points
+  level.lua       room/wall generation, wallCollision, locatePoint,
+                  level serialization (writeLevelFile hook)
+  entity.lua      newEntity + mixins (moving/living/player/ghost)
+  ia.lua          state-machine AI (tasks), IAtargetingUpdate
+  game.lua        gameSetup/gameStart, spawning, HUD, invocation circle
+domain/           game content (pure logic + injected interfaces)
+  ability.lua     abilitiesLibrary + newAbility: cooldowns, hitboxes
+  bestiary.lua    enemiesLibrary: enemy archetypes
+adapters/         the ONLY files that touch the LÖVE API
+  love_adapter.lua  implements G=getTimestamp/random/loadLevelFile/
+                    Mouse/Keyboard/Joystick + LÖVE callbacks (load/
+                    update/draw/keypressed/mousepressed...)
+  ui.lua            UI widget tree + hit-testing (draws via love.graphics)
+```
+
+Adapter interfaces (globals, defaulted in core/base.lua, implemented in
+adapters/love_adapter.lua, doubled in spec/game_loader.lua):
+
+- `G` — rendering (love.graphics surface: translate, setColor, rectangle, ...)
+- `getTimestamp()` — wall clock (love.timer.getTime)
+- `random([a[, b]])` — RNG (love.math.random)
+- `loadLevelFile(name)` / `writeLevelFile(text)` — level IO
+- `Mouse` / `Keyboard` / `Joystick` — input
+- `refreshJoystick()` — rebind the shared `joystick` global
+- shared `joystick` global — first gamepad object (its methods are
+  provided by LÖVE; tests leave it nil)
 
 `editableScript.lua` is user-editable code executed at game start via
 `safeLoadAndRun` — treat it as data, not part of the codebase.

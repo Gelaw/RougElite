@@ -5,8 +5,8 @@ function levelDisplayInit()
       -- TODO non urgent setup a image on load to increase display performances
     addDrawFunction( function ()
         for w, wall in pairs(walls) do
-          love.graphics.setColor(0, 0, 0)
-          love.graphics.line(wall[1].x, wall[1].y, wall[2].x, wall[2].y)
+          G.setColor(0, 0, 0)
+          G.line(wall[1].x, wall[1].y, wall[2].x, wall[2].y)
         end
       end
     )
@@ -14,11 +14,11 @@ function levelDisplayInit()
     --room Display
     addDrawFunction(function ()
       for r, room in pairs(rooms) do
-        love.graphics.setColor(room.roomcolor)
-        love.graphics.rectangle("fill", room.x-room.w/2, room.y-room.h/2, room.w, room.h)
+        G.setColor(room.roomcolor)
+        G.rectangle("fill", room.x-room.w/2, room.y-room.h/2, room.w, room.h)
         if roomHighlight and roomHighlight ~= room then
-          love.graphics.setColor(.2, .2, .2, .1)
-          love.graphics.rectangle("fill", room.x-room.w/2, room.y-room.h/2, room.w, room.h)
+          G.setColor(.2, .2, .2, .1)
+          G.rectangle("fill", room.x-room.w/2, room.y-room.h/2, room.w, room.h)
         end
       end
     end, 3)
@@ -30,7 +30,8 @@ end
 function levelSetup()
   baseRoomSize = 300
   safeLoadAndRun("baselevel.file")
-  love.filesystem.setIdentity("levelEditor")
+  -- identity switch (love.filesystem.setIdentity("levelEditor")) happens
+  -- in the LÖVE adapter before this; level files are loaded through it.
   safeLoadAndRun("level.file")
   calculate()
   generateWalls()
@@ -157,7 +158,7 @@ function saveToFile()
   local text = "levelRooms = "
   text = text .. recursiveToString(levelRooms, "")
   print(text)
-  local success, message = love.filesystem.write( "level.file", text)
+  local success, message = writeLevelFile(text)
   print(success, message)
 end
 

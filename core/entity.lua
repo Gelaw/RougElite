@@ -16,49 +16,49 @@ function newEntity()
     x=0, y=0, z=0, w=5, h=5, angle=0,
     updates = {},
     draw = function (self)
-      love.graphics.translate(self.x, self.y)
-      love.graphics.rotate(self.angle)
+      G.translate(self.x, self.y)
+      G.rotate(self.angle)
       --shadow display
-      love.graphics.push()
-      love.graphics.rotate(-self.angle-camera.angle)
-      love.graphics.translate(0, 3+self.z)
-      love.graphics.rotate(self.angle+camera.angle)
-      love.graphics.setColor(0, 0, 0, 0.1)
-      love.graphics.rectangle("fill", -self.w/2, -self.h/2, self.w, self.h)
-      love.graphics.pop()
+      G.push()
+      G.rotate(-self.angle-camera.angle)
+      G.translate(0, 3+self.z)
+      G.rotate(self.angle+camera.angle)
+      G.setColor(0, 0, 0, 0.1)
+      G.rectangle("fill", -self.w/2, -self.h/2, self.w, self.h)
+      G.pop()
       --body display (flickering in case of invicibility frames)
 
-      love.graphics.scale(1+self.z*0.3)
+      G.scale(1+self.z*0.3)
       if not self.invicibility or (math.floor(self.invicibility.time*20))%2~=1 then
         -- jump calculations
-        love.graphics.setColor(self.color)
-        love.graphics.rectangle("fill", -self.w/2, -self.h/2, self.w, self.h)
+        G.setColor(self.color)
+        G.rectangle("fill", -self.w/2, -self.h/2, self.w, self.h)
         if self == player then
-          love.graphics.setColor(0, .5, .8, .8)
-          love.graphics.polygon("fill", 2, 0, -3, -2, -3, 2)
+          G.setColor(0, .5, .8, .8)
+          G.polygon("fill", 2, 0, -3, -2, -3, 2)
         end
       end
-      love.graphics.rotate(-(self.angle+camera.angle))
+      G.rotate(-(self.angle+camera.angle))
       if debugSpeedAcc then
         if self.speed then
-          love.graphics.setColor(0, 1, 0, .5)
-          love.graphics.line(0, 0, 200*self.speed.x/1000, 200*self.speed.y/1000)
+          G.setColor(0, 1, 0, .5)
+          G.line(0, 0, 200*self.speed.x/1000, 200*self.speed.y/1000)
         end
         if self.acceleration then
-          love.graphics.setColor(0, 0, 1, .5)
-          love.graphics.line(0, 0, 200*self.acceleration.x/self.maxAcceleration, 200*self.acceleration.y/self.maxAcceleration)
+          G.setColor(0, 0, 1, .5)
+          G.line(0, 0, 200*self.acceleration.x/self.maxAcceleration, 200*self.acceleration.y/self.maxAcceleration)
         end
       end
       if self.IA then
         if self.IA.target then
           local angle = math.angle(self.x, self.y, self.IA.target.x, self.IA.target.y)
-          love.graphics.line(0, 0, 5*math.cos(angle), 5*math.sin(angle))
+          G.line(0, 0, 5*math.cos(angle), 5*math.sin(angle))
         end
-        love.graphics.setColor( 0, 0, 0)
-        love.graphics.print(self.team.."\t"..self.IA.task)
+        G.setColor( 0, 0, 0)
+        G.print(self.team.."\t"..self.IA.task)
       end
       if self.team == 1 and self.life then
-        love.graphics.print(self.life.." /"..self.maxLife, 0, 15)
+        G.print(self.life.." /"..self.maxLife, 0, 15)
       end
     end,
     update = function (self, dt)
@@ -177,11 +177,11 @@ function livingEntityInit(entity)
       table.insert(particuleEffects, {
         x=self.x, y=self.y, timeLeft=1,
         draw = function (self)
-          love.graphics.translate(self.x, self.y)
-          love.graphics.translate(5*(1-self.timeLeft), -10*(1-self.timeLeft))
-          love.graphics.scale(.5)
-          love.graphics.setColor(.8, .6, .5)
-          love.graphics.print(quantity)
+          G.translate(self.x, self.y)
+          G.translate(5*(1-self.timeLeft), -10*(1-self.timeLeft))
+          G.scale(.5)
+          G.setColor(.8, .6, .5)
+          G.print(quantity)
         end
       })
     end
@@ -267,7 +267,7 @@ function playerInit(entity)
     healthCutoff = 0,
     healthCutoffDuration = 1.5,
     onHit = function (self, quantity)
-      table.insert(self.hits, {math.min(quantity, self.life), love.timer.getTime()})
+      table.insert(self.hits, {math.min(quantity, self.life), getTimestamp()})
       self.healthCutoff = self.healthCutoff + math.min(quantity, self.life)
       local perceivedIntensity = (quantity/self.maxLife)^2
       cameraShake(200*perceivedIntensity, .5 )
@@ -290,10 +290,10 @@ function playerInit(entity)
   table.insert(player.updates,
   function (self, dt)
 
-    local mx, my = love.mouse.getPosition()
+    local mx, my = Mouse.getPosition()
     local angle = math.angle(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)
     local distance = math.dist(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)
-    if love.mouse.isDown(1) and mousePressedOnWorld then
+    if Mouse.isDown(1) and mousePressedOnWorld then
       local q = math.min(1, distance/100)
       self.acceleration ={x=q*self.maxAcceleration * math.cos(angle),y=q*self.maxAcceleration * math.sin(angle)}
     else
@@ -313,7 +313,7 @@ function playerInit(entity)
     self.targetAngle = angle
     --camera zoom control
     -- variables set in "cameraSetup()" method
-    if love.keyboard.isDown("lctrl") then
+    if Keyboard.isDown("lctrl") then
       camera.scale = math.max(camera.scale - camera.scaleChangeRate*dt, camera.minScale)
     else
       camera.scale = math.min(camera.scale + camera.scaleChangeRate*dt, camera.maxScale)
@@ -321,7 +321,7 @@ function playerInit(entity)
   end)
   table.insert(player.updates,
   function (self, dt)
-    local time = love.timer.getTime()
+    local time = getTimestamp()
     local hit
     for h = #self.hits, 1, -1 do
       hit = self.hits[h]
@@ -361,20 +361,20 @@ function newGhost(params)
         end
       end
       --keyboard ZQSD binds for player movement
-      if love.keyboard.isDown("z") and not love.keyboard.isDown("s") then
+      if Keyboard.isDown("z") and not Keyboard.isDown("s") then
         ay = -self.maxAcceleration
       end
-      if love.keyboard.isDown("s") and not love.keyboard.isDown("z") then
+      if Keyboard.isDown("s") and not Keyboard.isDown("z") then
         ay = self.maxAcceleration
       end
-      if love.keyboard.isDown("q") and not love.keyboard.isDown("d") then
+      if Keyboard.isDown("q") and not Keyboard.isDown("d") then
         ax = -self.maxAcceleration
       end
-      if love.keyboard.isDown("d") and not love.keyboard.isDown("q") then
+      if Keyboard.isDown("d") and not Keyboard.isDown("q") then
         ax = self.maxAcceleration
       end
-      if love.mouse.isDown(1) and mousePressedOnWorld then
-        local mx, my = love.mouse.getPosition()
+      if Mouse.isDown(1) and mousePressedOnWorld then
+        local mx, my = Mouse.getPosition()
         local angle = math.angle(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)
         local q = math.min(1, math.dist(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)/100)
         ax, ay = q*self.maxAcceleration * math.cos(angle), q*self.maxAcceleration * math.sin(angle)

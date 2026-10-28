@@ -7,7 +7,7 @@
 -- Setup: registries, fonts, enemy tracking, HUD, UIs
 --------------------------------------------------------------------
 function gameSetup()
-  local joysticks = love.joystick.getJoysticks()
+  local joysticks = Joystick.getJoysticks()
   if joysticks then joystick = joysticks[1] end
   lifebarWidth = 30
   mousePressedOnWorld = false
@@ -17,8 +17,8 @@ function gameSetup()
     {0, 1, 0, .2}
   }
 
-  normalfont = love.graphics.newFont(12)
-  bigassfont = love.graphics.newFont(48)
+  normalfont = G.newFont(12)
+  bigassfont = G.newFont(48)
 
   enemies = {}
   updateTimerClosestEnemy = .2
@@ -43,28 +43,28 @@ function gameSetup()
   end)
   addDrawFunction(function ()
     if not closest then return end
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.translate(closest.x, closest.y)
-    love.graphics.line(-20, -20, -15, -20)
-    love.graphics.line(-20, -20, -20, -15)
-    love.graphics.line(20, 20, 15, 20)
-    love.graphics.line(20, 20, 20, 15)
-    love.graphics.line(20, -20, 15, -20)
-    love.graphics.line(20, -20, 20, -15)
-    love.graphics.line(-20, 20, -15, 20)
-    love.graphics.line(-20, 20, -20, 15)
+    G.setColor(1, 1, 1)
+    G.translate(closest.x, closest.y)
+    G.line(-20, -20, -15, -20)
+    G.line(-20, -20, -20, -15)
+    G.line(20, 20, 15, 20)
+    G.line(20, 20, 20, 15)
+    G.line(20, -20, 15, -20)
+    G.line(20, -20, 20, -15)
+    G.line(-20, 20, -15, 20)
+    G.line(-20, 20, -20, 15)
   end ,9)
   table.insert(uis, {
     x = 0, y = 0,
     draw = function ()
       if StartingNumberEnemies > 0 then
         if #enemies == 0 then
-          love.graphics.push()
-          love.graphics.origin()
-          love.graphics.translate(.5*width, .5*height)
+          G.push()
+          G.origin()
+          G.translate(.5*width, .5*height)
           local victoire = victoire or {s=30}
-          love.graphics.setColor(.73, .5, .4)
-          love.graphics.polygon("fill",
+          G.setColor(.73, .5, .4)
+          G.polygon("fill",
           victoire.s,  victoire.s,
           -victoire.s,  victoire.s,
           -1.5*victoire.s, 0,
@@ -72,23 +72,23 @@ function gameSetup()
           victoire.s, -victoire.s,
           1.5*victoire.s, 0)
           victoire.s = math.min(victoire.s + 1, 120)
-          love.graphics.setColor(.2, .8, .4)
+          G.setColor(.2, .8, .4)
           local text = "Victoire"
-          love.graphics.setFont(bigassfont)
-          love.graphics.print(text, -.5*bigassfont:getWidth(text),-.5*bigassfont:getHeight())
-          love.graphics.setFont(normalfont)
-          love.graphics.pop()
+          G.setFont(bigassfont)
+          G.print(text, -.5*bigassfont:getWidth(text),-.5*bigassfont:getHeight())
+          G.setFont(normalfont)
+          G.pop()
           return
         end
-        love.graphics.origin()
-        love.graphics.setFont(bigassfont)
+        G.origin()
+        G.setFont(bigassfont)
         local text = "Enemy forces:"
         local marge = 30 + bigassfont:getWidth(text)
-        love.graphics.rectangle("fill", marge, 30, width - 2*marge, bigassfont:getHeight())
-        love.graphics.setColor(.5, .1, .1)
-        love.graphics.print(text, 30, 30)
-        love.graphics.rectangle("fill", marge, 30, (width - 2*marge)*#enemies/StartingNumberEnemies, bigassfont:getHeight())
-        love.graphics.setFont(normalfont)
+        G.rectangle("fill", marge, 30, width - 2*marge, bigassfont:getHeight())
+        G.setColor(.5, .1, .1)
+        G.print(text, 30, 30)
+        G.rectangle("fill", marge, 30, (width - 2*marge)*#enemies/StartingNumberEnemies, bigassfont:getHeight())
+        G.setFont(normalfont)
       end
     end
   })
@@ -96,69 +96,69 @@ function gameSetup()
   addDrawFunction(function()
     if player then
       --lifebar display
-      love.graphics.push()
-      love.graphics.translate(player.x, player.y)
-      love.graphics.translate(-15, -15)
+      G.push()
+      G.translate(player.x, player.y)
+      G.translate(-15, -15)
       if player.life then
-        love.graphics.setColor(.1, .1, .2, .3)
-        love.graphics.rectangle("fill", 3, 0, lifebarWidth, 5)
+        G.setColor(.1, .1, .2, .3)
+        G.rectangle("fill", 3, 0, lifebarWidth, 5)
         if player.life > 0 then
-          love.graphics.setColor(.1, .8, .2, .7)
+          G.setColor(.1, .8, .2, .7)
         else
-          love.graphics.setColor(.8, .2, .1, .2)
+          G.setColor(.8, .2, .1, .2)
         end
-        love.graphics.rectangle("fill", 3, 0, lifebarWidth*math.max(player.life, 0)/player.maxLife, 5)
-        love.graphics.setColor(.8, .2, .1, .9)
-        love.graphics.rectangle("fill", 3+lifebarWidth*math.max(player.life, 0)/player.maxLife, 0, lifebarWidth*player.healthCutoff/player.maxLife, 5)
+        G.rectangle("fill", 3, 0, lifebarWidth*math.max(player.life, 0)/player.maxLife, 5)
+        G.setColor(.8, .2, .1, .9)
+        G.rectangle("fill", 3+lifebarWidth*math.max(player.life, 0)/player.maxLife, 0, lifebarWidth*player.healthCutoff/player.maxLife, 5)
       end
       if player.ressources.mana then
         local current, max = player.ressources.mana.current, player.ressources.mana.max
-        love.graphics.setColor(.1, .1, .2, .3)
-        love.graphics.rectangle("fill", 3, 6, lifebarWidth, 2)
-        love.graphics.setColor(.1, .1, .8, .7)
-        love.graphics.rectangle("fill", 3, 6, lifebarWidth*current/max, 2)
+        G.setColor(.1, .1, .2, .3)
+        G.rectangle("fill", 3, 6, lifebarWidth, 2)
+        G.setColor(.1, .1, .8, .7)
+        G.rectangle("fill", 3, 6, lifebarWidth*current/max, 2)
       end
       --dash charges display
       if player.abilities and player.abilities.dash then
         for i = 1, player.abilities.dash.maxCharges do
           if player.abilities.dash.charges < i then
-            love.graphics.setColor(.1, .1, .2, .3)
+            G.setColor(.1, .1, .2, .3)
           else
-            love.graphics.setColor(0, .3, .9)
+            G.setColor(0, .3, .9)
           end
-          love.graphics.circle("fill", 4+10*(i-1), 5, 3)
+          G.circle("fill", 4+10*(i-1), 5, 3)
           if player.abilities.dash.charges == i - 1 then
-            love.graphics.setColor(0, .3, .9)
-            love.graphics.arc("fill", 4+10*(i-1), 5, 3, -math.pi/2+ 2*math.pi*(1-player.abilities.dash.cooldown/player.abilities.dash.baseCooldown), -math.pi/2)
+            G.setColor(0, .3, .9)
+            G.arc("fill", 4+10*(i-1), 5, 3, -math.pi/2+ 2*math.pi*(1-player.abilities.dash.cooldown/player.abilities.dash.baseCooldown), -math.pi/2)
           end
         end
       end
       --position display
-      love.graphics.translate(8, 30)
-      love.graphics.scale(.2)
-      love.graphics.setColor(0, 0, 0)
-      love.graphics.print(math.floor(player.x) .."\t"..math.floor(player.y))
-      love.graphics.pop()
+      G.translate(8, 30)
+      G.scale(.2)
+      G.setColor(0, 0, 0)
+      G.print(math.floor(player.x) .."\t"..math.floor(player.y))
+      G.pop()
     end
     if ghost then
-      love.graphics.translate(ghost.x, ghost.y)
-      love.graphics.setColor(1, 1, 1, .2)
+      G.translate(ghost.x, ghost.y)
+      G.setColor(1, 1, 1, .2)
       for e, entity in pairs(entities) do
         if entity.team and entity.team > 1 and entity.dead and entity.collide then
           local angle = math.angle(ghost.x, ghost.y, entity.x, entity.y)
           local distance = math.dist(ghost.x, ghost.y, entity.x, entity.y)
-          love.graphics.push()
+          G.push()
           if entity.archetypeName then
-            love.graphics.print(entity.archetypeName, entity.x-ghost.x-.5*normalfont:getWidth(entity.archetypeName), entity.y-ghost.y-15)
+            G.print(entity.archetypeName, entity.x-ghost.x-.5*normalfont:getWidth(entity.archetypeName), entity.y-ghost.y-15)
           end
-          love.graphics.rotate(angle)
-          love.graphics.arc("line", "open", distance, 0, 20, math.rad(15), 2*math.pi/3 - math.rad(15))
-          love.graphics.arc("line", "open", distance, 0, 20, 2*math.pi/3 + math.rad(15), 4*math.pi/3 - math.rad(15))
-          love.graphics.arc("line", "open", distance, 0, 20, 4*math.pi/3 + math.rad(15), 2*math.pi - math.rad(15))
+          G.rotate(angle)
+          G.arc("line", "open", distance, 0, 20, math.rad(15), 2*math.pi/3 - math.rad(15))
+          G.arc("line", "open", distance, 0, 20, 2*math.pi/3 + math.rad(15), 4*math.pi/3 - math.rad(15))
+          G.arc("line", "open", distance, 0, 20, 4*math.pi/3 + math.rad(15), 2*math.pi - math.rad(15))
 
-          love.graphics.translate((math.min(distance/100, .9)+.1)*50, 0)
-          love.graphics.polygon("fill", 0, 0, -10, 3, -10, -3)
-          love.graphics.pop()
+          G.translate((math.min(distance/100, .9)+.1)*50, 0)
+          G.polygon("fill", 0, 0, -10, 3, -10, -3)
+          G.pop()
         end
       end
     end
@@ -188,8 +188,8 @@ function gameSetup()
       end
     end,
     draw = function (self)
-      love.graphics.setColor(.1, .1, .1, .1)
-      love.graphics.rectangle("fill", 0, 0, self.width, self.height)
+      G.setColor(.1, .1, .1, .1)
+      G.rectangle("fill", 0, 0, self.width, self.height)
     end
   }
   table.insert(uis, abilitiesHUD)
@@ -206,10 +206,10 @@ function gameSetup()
         end
         if #pts>6 then
           c=c+1
-          love.graphics.setColor(1, 1, 1, .2)
-          love.graphics.polygon("fill", pts)
-          love.graphics.setColor(1, 1, 1)
-          love.graphics.polygon("line", pts)
+          G.setColor(1, 1, 1, .2)
+          G.polygon("fill", pts)
+          G.setColor(1, 1, 1)
+          G.polygon("line", pts)
         end
       end
     end
@@ -232,8 +232,8 @@ function setupSkillAndMonsterUIs()
     hidden = true, backgroundColor = {.5, teamColors[1][2]*.5, teamColors[1][3]*.5},
     children = {},
     draw = function (self)
-      love.graphics.setColor(self.backgroundColor)
-      love.graphics.rectangle("fill", 0, 0, self.width, self.height)
+      G.setColor(self.backgroundColor)
+      G.rectangle("fill", 0, 0, self.width, self.height)
     end
   }
   local x = 10
@@ -247,10 +247,10 @@ function setupSkillAndMonsterUIs()
         passives[self.passive] = passives[self.passive] + 1
       end,
       draw = function (self)
-        love.graphics.setColor(self.color)
-        love.graphics.rectangle("fill", 0, 0, self.width, self.height)
-        love.graphics.setColor(0, 0, 0)
-        love.graphics.print(self.passive ..": +".. passives[self.passive]*100-100 .."%")
+        G.setColor(self.color)
+        G.rectangle("fill", 0, 0, self.width, self.height)
+        G.setColor(0, 0, 0)
+        G.print(self.passive ..": +".. passives[self.passive]*100-100 .."%")
       end
     }
     table.insert(passiveSkillUI.children, child)
@@ -263,8 +263,8 @@ function setupSkillAndMonsterUIs()
     hidden = true, backgroundColor = {.5, .5, .5},
     children = {},
     draw = function (self)
-      love.graphics.setColor(self.backgroundColor)
-      love.graphics.rectangle("fill", 0, 0, self.width, self.height)
+      G.setColor(self.backgroundColor)
+      G.rectangle("fill", 0, 0, self.width, self.height)
     end
   }
   local x = 10
@@ -277,12 +277,12 @@ function setupSkillAndMonsterUIs()
       color={math.random(),math.random(),math.random()},
       entity = entity,
       draw = function (self)
-        love.graphics.setColor(self.color)
-        love.graphics.rectangle("fill", 0, 0, self.width, self.height)
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.print(self.entity.archetypeName)
-        love.graphics.translate(self.width/2, self.height/2)
-        love.graphics.scale(15, 15)
+        G.setColor(self.color)
+        G.rectangle("fill", 0, 0, self.width, self.height)
+        G.setColor(1, 1, 1)
+        G.print(self.entity.archetypeName)
+        G.translate(self.width/2, self.height/2)
+        G.scale(15, 15)
         self.entity:draw()
       end
     }
@@ -307,12 +307,12 @@ function newInvocationCircle()
     hidden = true,
     draw = function (self)
       if self.hidden then return end
-      love.graphics.translate(self.x, self.y)
+      G.translate(self.x, self.y)
       local pi = math.pi
-      love.graphics.rotate(-.5*pi+self.shapeAngle)
-      love.graphics.setColor(self.color)
-      love.graphics.arc("line", "open", 0, 0, self.outerRadius, 0, self.a)
-      love.graphics.arc("line", "open", 0, 0,  self.innerRadius, 0, self.a)
+      G.rotate(-.5*pi+self.shapeAngle)
+      G.setColor(self.color)
+      G.arc("line", "open", 0, 0, self.outerRadius, 0, self.a)
+      G.arc("line", "open", 0, 0,  self.innerRadius, 0, self.a)
       for i = 1, self.angleCuts do
         local angle1 = (i-1)*(2*pi)/self.angleCuts
         local angle2 = i*(2*pi)/self.angleCuts
@@ -322,8 +322,8 @@ function newInvocationCircle()
           local ratio = math.min(1, (self.a - angle1)/(angle2 - angle1))
           local dist = math.dist(p1[1], p1[2], p2[1], p2[2])*ratio
           local angle = math.angle(p1[1], p1[2], p2[1], p2[2])
-          love.graphics.line(p1[1], p1[2], p1[1]+dist*math.cos(angle), p1[2]+dist*math.sin(angle))
-          -- love.graphics.line(p1[1], p1[2], p2[1], p2[2])
+          G.line(p1[1], p1[2], p1[1]+dist*math.cos(angle), p1[2]+dist*math.sin(angle))
+          -- G.line(p1[1], p1[2], p2[1], p2[2])
         end
       end
     end,
@@ -372,7 +372,7 @@ function gameStart()
     table.insert(enemyLibKeys, e)
   end
 
-  math.randomseed(love.timer.getTime())
+  math.randomseed(getTimestamp())
   -- modes = nil or "IAPlaytesting"
   mode = "IAPlaytesting"
   for r, room in pairs(rooms) do
