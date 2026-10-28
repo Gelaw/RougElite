@@ -162,6 +162,9 @@ function saveToFile()
 end
 
 function recursiveToString(element, tabs)
+  if type(element) == "string" then
+    return string.format("%q", element)
+  end
   if type(element) ~= "table" then return element end
   local text = "{"
   local i = 0

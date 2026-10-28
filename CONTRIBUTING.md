@@ -15,9 +15,10 @@ love .
 love levelEditor
 love particuleEmiterEditor
 
-# lint (recommended before committing)
-luarocks install luacheck
-luacheck .
+# lint + unit tests (recommended before committing)
+luarocks install luacheck busted
+luacheck *.lua
+busted
 ```
 
 ## Project layout & architecture
@@ -66,6 +67,16 @@ a short clip help a lot for rendering issues.
 
 ## Testing
 
-There is no test suite yet. If you add pure logic (AI decisions, cooldown or
-damage math, geometry), consider writing it so it can be exercised with a
-stubbed `love` table — it keeps the door open for a future test suite.
+Unit tests live in `spec/` (busted). To add tests for a module:
+
+1. Create or extend a `spec/<domain>_spec.lua` file.
+2. `require("spec.game_loader")` and call `loader.loadGame()` once.
+3. Call `loader.resetWorld()` before mutating shared globals
+   (entities, particuleEffects, enemies, walls, uis...) — specs run in a
+   single process and these pools leak between tests otherwise.
+4. Write the test against the CURRENT behavior; if you find a bug,
+   fix the game code (not just the test) in the same commit, or
+   document the quirk in a comment if you choose to keep it.
+
+The `love` API is stubbed (`spec/love_stub.lua`) so no graphics context is
+needed: CI runs the suite on plain Lua 5.1.

@@ -1,0 +1,9 @@
+return {
+  default = {
+    spec = {
+      -- pattern of spec files inside the spec dir
+      pattern = "_spec.lua$",
+    },
+    coverage = false,
+  },
+}

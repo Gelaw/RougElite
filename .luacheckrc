@@ -83,7 +83,11 @@ globals = {
 include_files = {
   "*.lua",
   ".luacheckrc",
+  -- spec/ is excluded: specs legitimately reference the game's globals
+  -- as their subjects; they are validated by execution (busted), not lint.
 }
+
+exclude_files = { "levelEditor/*", "particuleEmiterEditor/*", "spec/*", "*.love" }
 
 -- CI policy: block ONLY on real global leaks / undefined accesses.
 -- Warning codes: https://luacheck.readthedocs.io/en/stable/warnings.html

@@ -106,11 +106,20 @@ Update callbacks registered earlier run first. This ordering is load-bearing:
 
 ## Tooling
 
-- **Lint:** `luacheck .` (config in `.luacheckrc`); runs in CI on every push/PR.
-- **Tests:** none yet. Pure-logic modules (ia.lua, ability cooldown math,
-  geometry in base.lua) can be tested by loading them with a stubbed `love`
-  table (no need for a graphics context).
-- CI workflow: `.github/workflows/ci.yml` (Lua 5.1 via luarocks, luacheck only).
+- **Lint:** `luacheck *.lua` (config in `.luacheckrc`); runs in CI on every push/PR.
+  Only the root game files are linted (editors and spec/ are excluded).
+- **Tests:** busted suite in `spec/` — run `busted` from the repo root.
+  - `spec/love_stub.lua` injects a permissive fake `love` table so game
+    modules load without a graphics context.
+  - `spec/game_loader.lua` loads all root modules in main.lua order
+    (call `loader.loadGame()` once per spec file) and offers
+    `loader.resetWorld()` to clear the shared entity/particle pools
+    between tests (specs run in ONE process: always reset mutable globals).
+  - One spec file per domain: base math/geometry/camera, entity mixins,
+    abilities/hitInHitbox, AI state machine, UI press/release, level
+    generation/serialization, spawn/passives/invocation circle.
+- CI workflow: `.github/workflows/ci.yml`: luacheck + busted (Lua 5.1
+  via luarocks) + a headless LÖVE boot smoke test (xvfb + software GL).
 
 ## Editing rules of thumb
 

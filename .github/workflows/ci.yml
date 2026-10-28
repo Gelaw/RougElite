@@ -14,22 +14,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Lua 5.1 + LuaRocks
+      - name: Install Lua 5.1
         uses: leafo/gh-actions-lua@v13
         with:
           luaVersion: "5.1"
 
-      - name: Install luacheck
+      - name: Install LuaRocks
         uses: leafo/gh-actions-luarocks@v6
-        with:
-          luacheckluaVersion: "5.1"
 
       - name: Run luacheck
         run: |
           luarocks install luacheck
-          # Lint only the root game code (not .luarocks/, not the editors
-          # whose base.lua copies have diverged).
+          # Lint only the root game code (not .luarocks/, spec/ or the
+          # editors whose base.lua copies have diverged).
           luacheck *.lua
+
+  busted:
+    name: Busted (unit tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Lua 5.1
+        uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: "5.1"
+
+      - name: Install LuaRocks
+        uses: leafo/gh-actions-luarocks@v6
+
+      - name: Run busted
+        run: |
+          luarocks install busted
+          busted --verbose
 
   love-smoke:
     name: LÖVE2D smoke test
