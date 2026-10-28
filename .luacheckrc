@@ -9,10 +9,13 @@
 -- (registers love callbacks like love.update as writable fields).
 std = "lua51+love"
 
+stds = stds or {}
+
 -- base.lua extends the math library at load time (math.dist, math.angle,
 -- math.round, math.sign, math.angleDiff, math.normalize, math.multiple,
 -- math.averageAngles, math.rsign, math.prandom, math.clamp).
--- Reuse lua51's math table and whitelist the added fields:
+-- luacheck's bundled stds don't know them; declare them and merge into
+-- the active std with +rougelite.
 stds.rougelite = {
   read_globals = {
     math = {
@@ -23,6 +26,9 @@ stds.rougelite = {
     },
   },
 }
+
+-- merge rougelite into the default stds (use +rougelite in std)
+std = "lua51+love+rougelite"
 
 globals = {
   -- ==== top-level functions (engine modules) ====
