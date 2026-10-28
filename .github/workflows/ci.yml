@@ -35,20 +35,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install LÖVE2D
+      - name: Install LÖVE2D, virtual display and software GL
         run: |
           sudo apt-get update
-          sudo apt-get install -y love
+          sudo apt-get install -y love xvfb libgl1-mesa-dri
 
-      - name: Boot check (headless, 2s timeout)
+      - name: Boot check (virtual display, 10s timeout)
         run: |
-          # The game must reach love.load + one update/draw cycle without
-          # crashing. Rendering needs no display: LÖVE falls back to
-          # OpenGL offscreen on Linux CI (if it fails on this runner,
-          # install xvfb and use `xvfb-run love .`).
-          timeout 10s love . || code=$?
-          # love exits non-zero when killed by timeout (124). Any other
-          # non-zero exit before the timeout is a real boot crash.
+          # The game must reach love.load and run update/draw cycles
+          # without crashing. Rendering happens on a virtual display
+          # (xvfb) with Mesa software OpenGL (llvmpipe).
+          # timeout kills the game after 10s with exit 124; any other
+          # early non-zero exit is a real boot crash.
+          timeout 10s xvfb-run -a love . || code=$?
           if [ -n "$code" ] && [ "$code" != "124" ]; then
             echo "::error::game failed to boot (exit $code)"
             exit 1
