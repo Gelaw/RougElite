@@ -118,7 +118,7 @@ function addRoom(p, w, h, doors)
   addWall({x=p.x-w/2, y=p.y+h/2}, {x=p.x+w/2, y=p.y+h/2}, doors.south)
   addWall({x=p.x-w/2, y=p.y-h/2}, {x=p.x-w/2, y=p.y+h/2},  doors.west)
   local roomcolor = {math.random()*.2+.4, math.random()*.2+.4, math.random()*.2+.4, 1}
-  room = {x=p.x, y=p.y, w=w, h=h,  roomcolor=roomcolor}
+  local room = {x=p.x, y=p.y, w=w, h=h,  roomcolor=roomcolor}
   table.insert(rooms, room)
   return room
 end
@@ -157,7 +157,7 @@ function saveToFile()
   local text = "levelRooms = "
   text = text .. recursiveToString(levelRooms, "")
   print(text)
-  success, message = love.filesystem.write( "level.file", text)
+  local success, message = love.filesystem.write( "level.file", text)
   print(success, message)
 end
 

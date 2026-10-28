@@ -73,7 +73,6 @@ abilitiesLibrary = {
         color = {.2, .2, 1, 1},
         x=x, y=y,
         angle = caster.angle, w = 3, h = 40, durability = 3, team = caster.team,
-        wall = wall,
         draw = function (self)
           love.graphics.push()
           love.graphics.setColor(self.color)
@@ -178,7 +177,7 @@ abilitiesLibrary = {
         if entity.team and entity.team ~= caster.team and entity.life and not entity.dead then
           angle = math.angle(caster.x, caster.y, entity.x, entity.y)
           distance = math.dist(caster.x, caster.y, entity.x, entity.y)
-          deltaAngle = math.angleDiff(angle, caster.angle)
+          local deltaAngle = math.angleDiff(angle, caster.angle)
           if distance <= self.range and deltaAngle < self.angleDelta then
             if not wallCollision(caster, entity) then
               entity:hit(self.damage)
@@ -607,7 +606,7 @@ abilitiesLibrary = {
     activationDuration = .5,
     activate = function (self, caster)
       self:deductCosts(caster)
-      projectile = applyParams(movingEntityInit(),{
+      local projectile = applyParams(movingEntityInit(),{
         x = caster.x, y = caster.y, z = 0, maxZ = self.maxZ,
         w = 5, h = 5,
         team = caster.team,
@@ -622,7 +621,7 @@ abilitiesLibrary = {
         explosionRadius = self.explosionRadius,
         d = 0,
         onWallCollision = function (self, wall)
-          angleWall = math.angle(wall[1].x, wall[1].y, wall[2].x, wall[2].y)
+          local angleWall = math.angle(wall[1].x, wall[1].y, wall[2].x, wall[2].y)
           self.angle = -self.angle + 2*angleWall
           self.speed = {x=self.basesSpeed*math.cos(self.angle), y=self.basesSpeed*math.sin(self.angle)}
         end
@@ -656,7 +655,7 @@ abilitiesLibrary = {
 }
 function hitInHitbox(hitbox, caster, damage)
   damage = damage or 1
-  hits = {}
+  local hits = {}
   if hitbox.w and hitbox.h then
     local x, y, a, w, h = hitbox.x, hitbox.y, hitbox.angle, hitbox.w/2, hitbox.h/2
     local corners = {

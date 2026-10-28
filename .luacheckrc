@@ -71,11 +71,6 @@ globals = {
   "normalfont", "bigassfont", "directions", "north", "south", "east", "west",
   "pressed",
 
-  -- ==== globals leaked by ability.lua (to be localized when the module
-  --      is refactored; declared so CI stays green meanwhile) ====
-  "projectile", "angleWall", "deltaAngle", "hits", "wall",
-  -- level.lua
-  "room", "success", "message",
 
   -- ==== data libraries ====
   "abilitiesLibrary", "enemiesLibrary",
