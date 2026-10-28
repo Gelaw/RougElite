@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [masterBranch]
+    branches: ['**']
   pull_request:
     branches: [masterBranch]
   workflow_dispatch:
