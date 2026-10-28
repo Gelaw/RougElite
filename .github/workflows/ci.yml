@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [masterBranch]
+  pull_request:
+    branches: [masterBranch]
+  workflow_dispatch:
+
+jobs:
+  luacheck:
+    name: Luacheck (lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Lua 5.1 + LuaRocks
+        uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: "5.1"
+
+      - name: Install luacheck
+        uses: leafo/gh-actions-luarocks@v6
+        with:
+          luacheckluaVersion: "5.1"
+
+      - name: Run luacheck
+        run: |
+          luarocks install luacheck
+          luacheck .
+
+  love-smoke:
+    name: LÖVE2D smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LÖVE2D
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y love
+
+      - name: Boot check (headless, 2s timeout)
+        run: |
+          # The game must reach love.load + one update/draw cycle without
+          # crashing. Rendering needs no display: LÖVE falls back to
+          # OpenGL offscreen on Linux CI (if it fails on this runner,
+          # install xvfb and use `xvfb-run love .`).
+          timeout 10s love . || code=$?
+          # love exits non-zero when killed by timeout (124). Any other
+          # non-zero exit before the timeout is a real boot crash.
+          if [ -n "$code" ] && [ "$code" != "124" ]; then
+            echo "::error::game failed to boot (exit $code)"
+            exit 1
+          fi
