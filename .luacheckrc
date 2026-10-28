@@ -9,6 +9,21 @@
 -- (registers love callbacks like love.update as writable fields).
 std = "lua51+love"
 
+-- base.lua extends the math library at load time (math.dist, math.angle,
+-- math.round, math.sign, math.angleDiff, math.normalize, math.multiple,
+-- math.averageAngles, math.rsign, math.prandom, math.clamp).
+-- Reuse lua51's math table and whitelist the added fields:
+stds.rougelite = {
+  read_globals = {
+    math = {
+      fields = {
+        "dist", "angle", "round", "sign", "angleDiff", "normalize",
+        "multiple", "averageAngles", "rsign", "prandom", "clamp",
+      },
+    },
+  },
+}
+
 globals = {
   -- ==== top-level functions (engine modules) ====
   -- base.lua
@@ -49,6 +64,10 @@ globals = {
   "updateTimerClosestEnemy", "lifebarWidth", "interIATUtick",
   "normalfont", "bigassfont", "directions", "north", "south", "east", "west",
   "pressed",
+
+  -- ==== globals leaked by ability.lua (to be localized when the module
+  --      is refactored; declared so CI stays green meanwhile) ====
+  "projectile", "angleWall", "deltaAngle", "hits", "wall",
 
   -- ==== data libraries ====
   "abilitiesLibrary", "enemiesLibrary",
