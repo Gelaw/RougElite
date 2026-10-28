@@ -1,3 +1,11 @@
+--------------------------------------------------------------------
+-- main.lua : LÖVE entry point, module requires and input dispatch
+--
+-- Debug keys: escape (quit/close UI), k (kill player / cheat
+-- respawn from ghost), h (hitboxes), m (regen level),
+-- tab (passive skills), p (monsterdex).
+--------------------------------------------------------------------
+
 require "base"
 require "level"
 require "entity"
@@ -28,7 +36,7 @@ function love.keypressed(key, scancode, isrepeat)
     if player and not player.dead then
       player.dead = true
       player:onDeath()
-    else
+    elseif ghost then
       newCheatPlayer({x=ghost.x, y=ghost.y})
       ghost.terminated = true
       ghost = nil

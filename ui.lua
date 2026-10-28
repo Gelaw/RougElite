@@ -1,3 +1,12 @@
+--------------------------------------------------------------------
+-- ui.lua : minimal UI widget tree and mouse hit-testing
+--
+-- Widgets are tables with x/y, w/width, h/height, optional
+-- children, draw, onPress, onClick. `pressed` (global) tracks
+-- the widget under a held mouse button so onClick only fires
+-- when press and release happen on the same element.
+--------------------------------------------------------------------
+
 uis = {}
 
 function drawUIs()

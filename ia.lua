@@ -1,3 +1,12 @@
+--------------------------------------------------------------------
+-- ia.lua : state-machine AI (tasks) and entity targeting
+--
+-- An IA is a table of named tasks (start/update/finish) plus the
+-- current task name; switchToTask finishes the old task and starts
+-- the new one. Targets are refreshed globally by
+-- IAtargetingUpdate every interIATUtick seconds.
+--------------------------------------------------------------------
+
 function newTask()
   return {
     start = function () end,
@@ -38,7 +47,7 @@ function basicIA(entity)
     idle = applyParams(newTask(), {
       update = function (self, ia, entity)
         if not ia.target or ia.target.dead then
-          ia:switchToTask("unstarted", entity)
+          ia:switchToTask("unstarted")
           return
         end
         if math.dist(entity.x, entity.y, ia.target.x, ia.target.y) < ia.aggroRange then
@@ -57,7 +66,7 @@ function basicIA(entity)
           ia:switchToTask("idle")
           return
         end
-        local choice = nil, nil
+        local choice = nil
         for a, ability in pairs(entity.abilities) do
           if ((ability.charges and ability.charges > 0) or (not ability.charges)) and ((ability.cooldown and ability.cooldown <= 0) or (not ability.cooldown) ) then
             if not choice or (entity.abilities[choice].range < ability.range and (not ability.rangeMin or ability.rangeMin < distance)) then
