@@ -1,4 +1,11 @@
+--------------------------------------------------------------------
+-- game.lua : game setup, spawning, run start and HUD
+-- Called from main.lua's projectSetup() (gameSetup then gameStart).
+--------------------------------------------------------------------
 
+--------------------------------------------------------------------
+-- Setup: registries, fonts, enemy tracking, HUD, UIs
+--------------------------------------------------------------------
 function gameSetup()
   local joysticks = love.joystick.getJoysticks()
   if joysticks then joystick = joysticks[1] end
@@ -10,7 +17,6 @@ function gameSetup()
     {0, 1, 0, .2}
   }
 
-
   normalfont = love.graphics.newFont(12)
   bigassfont = love.graphics.newFont(48)
 
@@ -21,17 +27,18 @@ function gameSetup()
     updateTimerClosestEnemy = updateTimerClosestEnemy - dt
     if updateTimerClosestEnemy <= 0 then
       updateTimerClosestEnemy = 3
-      closest, dist = enemies[1], math.dist(player.x, player.y,enemies[1].x, enemies[1].y)
+      local closest, dist = enemies[1], math.dist(player.x, player.y, enemies[1].x, enemies[1].y)
       for e = #enemies, 1, -1 do
-        enemy = enemies[e]
+        local enemy = enemies[e]
         if enemy.dead or enemy.terminated then
           table.remove(enemies, e)
         else
-          if math.dist(player.x, player.y,enemy.x, enemy.y) < dist then
-            closest, dist = enemy, math.dist(player.x, player.y,enemy.x, enemy.y)
+          if math.dist(player.x, player.y, enemy.x, enemy.y) < dist then
+            closest, dist = enemy, math.dist(player.x, player.y, enemy.x, enemy.y)
           end
         end
       end
+      _G.closest = closest
     end
   end)
   addDrawFunction(function ()
@@ -55,7 +62,7 @@ function gameSetup()
           love.graphics.push()
           love.graphics.origin()
           love.graphics.translate(.5*width, .5*height)
-          victoire = victoire or {s=30}
+          local victoire = victoire or {s=30}
           love.graphics.setColor(.73, .5, .4)
           love.graphics.polygon("fill",
           victoire.s,  victoire.s,
@@ -211,6 +218,13 @@ function gameSetup()
 
   levelDisplayInit()
 
+  setupSkillAndMonsterUIs()
+end
+
+--------------------------------------------------------------------
+-- Passive skill UI and monsterdex
+--------------------------------------------------------------------
+function setupSkillAndMonsterUIs()
   passives = {maxLife = 1, maxSpeed = 1, damage = 1, range = 1, maxCharges = 1}
   ennemyPassives = {maxLife = .7, maxSpeed = .7, damage = .7, range = .7, maxCharges = 1}
   passiveSkillUI = {
@@ -224,7 +238,7 @@ function gameSetup()
   }
   local x = 10
   for p, passive in pairs(passives) do
-    child = {
+    local child = {
       x = x, y= 10, width = 120, height = 120,
       color={math.random(),math.random(),math.random()},
       passive = p,
@@ -258,7 +272,7 @@ function gameSetup()
     local entity = enemy()
     entity.IA = nil
     entity.team = nil
-    child = {
+    local child = {
       x = x, y= 10, width = 300, height = 300,
       color={math.random(),math.random(),math.random()},
       entity = entity,
@@ -278,10 +292,10 @@ function gameSetup()
   table.insert(uis, monsterdexUI)
 end
 
-function gameStart()
-  levelSetup()
-  cameraSetup()
- 
+--------------------------------------------------------------------
+-- Invocation circle: possession ritual effect
+--------------------------------------------------------------------
+function newInvocationCircle()
   invocationCircle = {
     x= 0, y = 0,
     outerRadius = 15,
@@ -300,14 +314,14 @@ function gameStart()
       love.graphics.arc("line", "open", 0, 0, self.outerRadius, 0, self.a)
       love.graphics.arc("line", "open", 0, 0,  self.innerRadius, 0, self.a)
       for i = 1, self.angleCuts do
-        angle1 = (i-1)*(2*pi)/self.angleCuts
-        angle2 = i*(2*pi)/self.angleCuts
+        local angle1 = (i-1)*(2*pi)/self.angleCuts
+        local angle2 = i*(2*pi)/self.angleCuts
         if self.a > angle1 then
-          p1 = {self.outerRadius*math.cos(angle1), self.outerRadius*math.sin(angle1)}
-          p2 = {self.outerRadius*math.cos(math.pi*4/self.angleCuts+angle2), self.outerRadius*math.sin(math.pi*4/self.angleCuts+angle2)}
-          ratio = math.min(1, (self.a - angle1)/(angle2 - angle1))
-          dist = math.dist(p1[1], p1[2], p2[1], p2[2])*ratio
-          angle = math.angle(p1[1], p1[2], p2[1], p2[2])
+          local p1 = {self.outerRadius*math.cos(angle1), self.outerRadius*math.sin(angle1)}
+          local p2 = {self.outerRadius*math.cos(math.pi*4/self.angleCuts+angle2), self.outerRadius*math.sin(math.pi*4/self.angleCuts+angle2)}
+          local ratio = math.min(1, (self.a - angle1)/(angle2 - angle1))
+          local dist = math.dist(p1[1], p1[2], p2[1], p2[2])*ratio
+          local angle = math.angle(p1[1], p1[2], p2[1], p2[2])
           love.graphics.line(p1[1], p1[2], p1[1]+dist*math.cos(angle), p1[2]+dist*math.sin(angle))
           -- love.graphics.line(p1[1], p1[2], p2[1], p2[2])
         end
@@ -320,7 +334,7 @@ function gameStart()
         self.outerRadius= self.outerRadius - dt
       else
         self.outerRadius = self.outerRadius + 5*dt
-        r = (math.random()-.5)*.1
+        local r = (math.random()-.5)*.1
         self.color[1], self.color[2], self.color[3] = self.color[1] + r, self.color[2]+ r, self.color[3]+ r
         self.color[4] = self.color[4] - dt
         if self.color[4] <= 0 then self.hidden = true end
@@ -338,12 +352,20 @@ function gameStart()
     end
   }
   table.insert(entities, invocationCircle)
+  return invocationCircle
+end
+
+--------------------------------------------------------------------
+-- Run start: level, camera, ghost, enemy population
+--------------------------------------------------------------------
+function gameStart()
+  levelSetup()
+  cameraSetup()
+
+  newInvocationCircle()
   math.randomseed(os.time())
 
-
-
   newGhost({x=rooms[1].x, y=rooms[1].y})
-
 
   enemyLibKeys = {}
   for e, enemy in pairs(enemiesLibrary) do
@@ -359,25 +381,7 @@ function gameStart()
       if mode == "IAPlaytesting" then
         --an AI goes throught the dungeon and kills ennemy in the place of the player (for playing testing purposes)
         -- Warning: only works if rooms are connected by their midpoints, as it goes from center to center
-        local enemyArchetype = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
-        local entity = spawn(enemyArchetype, {maxLife = 10000, life = 10000, x= room.x + (math.random()-.45)*room.w, y=room.y + (math.random()-.45)*room.h, team = 1})
-        entity.room = 1
-        table.insert(entity.updates, function (self, dt)
-          if not self.IA then return end
-          if self.IA.task == "unstarted" then
-            local room = rooms[self.room]
-            local angle = math.angle(self.x, self.y, room.x, room.y)
-            self.acceleration = {x=.5*self.maxAcceleration*math.cos(angle), y=.5*self.maxAcceleration*math.sin(angle)}
-            if math.dist(self.x, self.y, room.x, room.y)<10 and #rooms>self.room then
-              self.speed = {x=0, y=0}
-              self.room = self.room+1
-            elseif wallCollision(self, room) then
-              self.speed = {x=0, y=0}
-              self.room = locatePoint(self.x, self.y)
-            end
-          end
-        end)
-        camera.mode = {"follow", entity}
+        spawnIAPlaytester(room)
       else
         --default mode, 3 corpses are set for player possesion
         for i = 1, 3 do
@@ -396,7 +400,32 @@ function gameStart()
   StartingNumberEnemies = #enemies
 end
 
+function spawnIAPlaytester(room)
+  local enemyArchetype = enemiesLibrary[enemyLibKeys[math.random(#enemyLibKeys)]]
+  local entity = spawn(enemyArchetype, {maxLife = 10000, life = 10000, x= room.x + (math.random()-.45)*room.w, y=room.y + (math.random()-.45)*room.h, team = 1})
+  entity.room = 1
+  table.insert(entity.updates, function (self, dt)
+    if not self.IA then return end
+    if self.IA.task == "unstarted" then
+      local room = rooms[self.room]
+      local angle = math.angle(self.x, self.y, room.x, room.y)
+      self.acceleration = {x=.5*self.maxAcceleration*math.cos(angle), y=.5*self.maxAcceleration*math.sin(angle)}
+      if math.dist(self.x, self.y, room.x, room.y)<10 and #rooms>self.room then
+        self.speed = {x=0, y=0}
+        self.room = self.room+1
+      elseif wallCollision(self, room) then
+        self.speed = {x=0, y=0}
+        self.room = locatePoint(self.x, self.y)
+      end
+    end
+  end)
+  camera.mode = {"follow", entity}
+  return entity
+end
 
+--------------------------------------------------------------------
+-- Spawning helpers
+--------------------------------------------------------------------
 function spawn(enemyArchetype, params)
   local entity = applyParams(enemyArchetype(), params)
   table.insert(entities, entity)
@@ -409,8 +438,8 @@ function spawn(enemyArchetype, params)
           entity[s] = entity[s] * stat
         else
           for a, ability in pairs(entity.abilities) do
-            if entity[s] then
-              entity[s] = entity[s] * stat
+            if ability[s] then
+              ability[s] = ability[s] * stat
             end
           end
         end
@@ -427,7 +456,7 @@ function newCheatPlayer(params)
     maxLife = 1000,
     abilities = {
       shoot = newAbility("shoot"),
-      boeingboeingboeing = newAbility("boeingboeingboeing"),
+      bouncingBomb = newAbility("bouncingBomb"),
     },
   })
   if params then

@@ -1,4 +1,12 @@
+--------------------------------------------------------------------
+-- entity.lua : entity constructors and composition mixins
+-- Provides newEntity plus the movingEntityInit/livingEntityInit/
+-- playerInit/newGhost/entitySetup building blocks.
+--------------------------------------------------------------------
 
+--------------------------------------------------------------------
+-- Base entity
+--------------------------------------------------------------------
 function newEntity()
   local entity = {
     --display
@@ -62,6 +70,9 @@ function newEntity()
   return entity
 end
 
+--------------------------------------------------------------------
+-- Moving entity mixin: speed, acceleration, wall collision
+--------------------------------------------------------------------
 function movingEntityInit(entity)
   local entity = entity or newEntity()
 
@@ -78,6 +89,7 @@ function movingEntityInit(entity)
     local blocked = false
     local collidedWalls = {}
     local blockingWall = nil
+    local check = nil
     check, blockingWall = wallCollision(self, dest)
     if check then
       blocked = true
@@ -105,13 +117,13 @@ function movingEntityInit(entity)
     self.speed = {x=0, y=0}
   end
   table.insert(entity.updates, function (self, dt)
-    if entity.stuck then
+    if self.stuck then
       self.acceleration = {x=0, y=0}
       self.speed = {x=0, y=0}
       return
     end
-    self.speed.x = (self.speed.x + self.acceleration.x*dt)*entity.speedDrag
-    self.speed.y = (self.speed.y + self.acceleration.y*dt)*entity.speedDrag
+    self.speed.x = (self.speed.x + self.acceleration.x*dt)*self.speedDrag
+    self.speed.y = (self.speed.y + self.acceleration.y*dt)*self.speedDrag
     if self.maxSpeed then
       self.speed.x = math.max(-self.maxSpeed, math.min(self.speed.x, self.maxSpeed))
       self.speed.y = math.max(-self.maxSpeed, math.min(self.speed.y, self.maxSpeed))
@@ -123,6 +135,9 @@ function movingEntityInit(entity)
   return entity
 end
 
+--------------------------------------------------------------------
+-- Living entity mixin: life, death, hits, resource regeneration
+--------------------------------------------------------------------
 function livingEntityInit(entity)
   local entity = entity or newEntity()
 
@@ -216,6 +231,9 @@ function livingEntityInit(entity)
   return entity
 end
 
+--------------------------------------------------------------------
+-- Player: possessed entity with mouse/gamepad control
+--------------------------------------------------------------------
 function playerInit(entity)
   player = entity or movingEntityInit()
 
@@ -276,14 +294,14 @@ function playerInit(entity)
     local angle = math.angle(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)
     local distance = math.dist(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)
     if love.mouse.isDown(1) and mousePressedOnWorld then
-      q = math.min(1, distance/100)
+      local q = math.min(1, distance/100)
       self.acceleration ={x=q*self.maxAcceleration * math.cos(angle),y=q*self.maxAcceleration * math.sin(angle)}
     else
       self.acceleration = {x=0, y=0}
     end
     --if gamepad is connected, use left joystick as input
     if joystick then
-      a1, a2, a3 = joystick:getAxes()
+      local a1, a2, a3 = joystick:getAxes()
       --check if joystick is outside of deadzone (TODO later: parameter 0.3 to be extrated and made modifiable once parameter norm in place)
       if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
         self.acceleration.x, self.acceleration.y = self.maxAcceleration*a1*math.abs(a1), self.maxAcceleration*a2*math.abs(a2)
@@ -319,6 +337,9 @@ function playerInit(entity)
   return player
 end
 
+--------------------------------------------------------------------
+-- Ghost: player spirit, can possess dead enemies
+--------------------------------------------------------------------
 function newGhost(params)
   ghost = {
     shape = "rectangle",
@@ -333,7 +354,7 @@ function newGhost(params)
       local ax, ay = 0, 0
       --if gamepad is connected, use left joystick as input
       if joystick then
-        a1, a2, a3 = joystick:getAxes()
+        local a1, a2, a3 = joystick:getAxes()
         --check if joystick is outside of deadzone (TODO later: parameter 0.3 to be extrated and made modifiable once parameter norm in place)
         if math.abs(a1)>0.3 or math.abs(a2)>0.3 then
           ax, ay = self.maxAcceleration*a1*math.abs(a1), self.maxAcceleration*a2*math.abs(a2)
@@ -353,9 +374,9 @@ function newGhost(params)
         ax = self.maxAcceleration
       end
       if love.mouse.isDown(1) and mousePressedOnWorld then
-        mx, my = love.mouse.getPosition()
-        angle = math.angle(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)
-        q = math.min(1, math.dist(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)/100)
+        local mx, my = love.mouse.getPosition()
+        local angle = math.angle(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)
+        local q = math.min(1, math.dist(.5*width+self.x-camera.x, .5*height+self.y-camera.y, mx, my)/100)
         ax, ay = q*self.maxAcceleration * math.cos(angle), q*self.maxAcceleration * math.sin(angle)
       end
       --speed, position and orientation calculations
@@ -391,6 +412,9 @@ function newGhost(params)
   return ghost
 end
 
+--------------------------------------------------------------------
+-- Composition helper: chains init functions then applies params
+--------------------------------------------------------------------
 function entitySetup(initFunctions, extraParams)
   local entity = nil
   for f, func in pairs(initFunctions) do
