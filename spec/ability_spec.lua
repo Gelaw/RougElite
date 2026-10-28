@@ -53,7 +53,7 @@ describe("hitInHitbox", function()
     -- corner-vs-center segment test (segments pass through it) — quirk of
     -- the current collision filter, documented here.
     victim.x, victim.y = 20, 10
-    entities = {victim}
+    _G.entities = {victim}
     local caster = {team = 1, x = 0, y = 0}
     local hits = hitInHitbox({x = 0, y = 0, angle = 0, w = 100, h = 100}, caster, 5)
     -- quirk: the RECTANGULAR branch damages entities but does NOT append
@@ -67,7 +67,7 @@ describe("hitInHitbox", function()
     loader.resetWorld()
     local victim = freshVictim()
     victim.x, victim.y = 30, 0
-    entities = {victim}
+    _G.entities = {victim}
     local hits = hitInHitbox({x = 0, y = 0, radius = 50}, {team = 1}, 5)
     assert.are.equal(1, #hits)
     victim.x = 100
@@ -84,7 +84,7 @@ describe("hitInHitbox", function()
     corpse.life = 0 -- note: hitInHitbox filters on life, not dead; a dead
     -- entity that still has life > 0 IS included in `hits` (harmless: hit()
     -- returns early on dead) — documented quirk of the current filter.
-    entities = {ally, corpse}
+    _G.entities = {ally, corpse}
     local hits = hitInHitbox({x = 0, y = 0, radius = 500}, {team = 1}, 5)
     assert.are.equal(0, #hits)
   end)

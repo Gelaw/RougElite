@@ -108,7 +108,7 @@ describe("movingEntityInit", function()
   end)
 
   it("tryMovingTo moves freely without walls", function()
-    walls = {}
+    _G.walls = {}
     local e = movingEntityInit()
     e.x, e.y = 50, 50
     local blocked = e:tryMovingTo({x = 60, y = 50})
@@ -117,7 +117,7 @@ describe("movingEntityInit", function()
   end)
 
   it("tryMovingTo is blocked by a wall and keeps position", function()
-    walls = {{{x = 0, y = 0}, {x = 0, y = 100}}}
+    _G.walls = {{{x = 0, y = 0}, {x = 0, y = 100}}}
     local e = movingEntityInit()
     e.x, e.y = 50, 50
     local blocked = e:tryMovingTo({x = -50, y = 50})
@@ -130,20 +130,20 @@ describe("ghost", function()
   loader.loadGame()
 
   it("newGhost spawns a followable ghost in entities", function()
-    entities = {}
+    _G.entities = {}
     local g = newGhost({x = 123, y = 456})
     assert.are.equal(123, g.x)
     assert.are.equal(1, #entities)
     assert.are.same({"follow", g}, camera.mode)
-    ghost = nil -- cleanup
+    _G.ghost = nil -- cleanup
   end)
 
   it("ghost colliding with a dead enemy possesses it (playerInit)", function()
-    entities = {}
+    _G.entities = {}
     local corpse = entitySetup({livingEntityInit, movingEntityInit}, {team = 2, maxLife = 10})
     corpse.dead = true
     table.insert(entities, corpse)
-    abilitiesHUD = {load = function() end}
+    _G.abilitiesHUD = {load = function() end} -- playerInit() refreshes the HUD
     local g = newGhost({x = 0, y = 0})
     g:collide(corpse)
     assert.are.same(corpse, player)

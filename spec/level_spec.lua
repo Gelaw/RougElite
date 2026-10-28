@@ -8,7 +8,7 @@ describe("level generation", function()
   loader.loadGame()
 
   it("calculate() derives room positions from entry chains", function()
-    levelRooms = {
+    _G.levelRooms = {
       {x = 0, y = 0, w = 100, h = 100}, -- room 1: origin
       {w = 100, h = 100, entry = {1, "east", .5, .5, 10}}, -- attached east of room 1
     }
@@ -21,7 +21,7 @@ describe("level generation", function()
   end)
 
   it("generateWalls() builds rooms and wall segments from levelRooms", function()
-    levelRooms = {
+    _G.levelRooms = {
       {x = 0, y = 0, w = 100, h = 100},
       {x = 200, y = 0, w = 100, h = 100, entry = {1, "east", .5, .5, 10}},
     }
@@ -32,7 +32,7 @@ describe("level generation", function()
   end)
 
   it("locatePoint() returns the room index containing the point", function()
-    levelRooms = {
+    _G.levelRooms = {
       {x = 0, y = 0, w = 100, h = 100},
       {w = 100, h = 100, entry = {1, "east", .5, .5, 10}},
     }
@@ -44,7 +44,7 @@ describe("level generation", function()
   end)
 
   it("wallCollision detects a crossing and reports the wall", function()
-    walls = {{{x = 0, y = 0}, {x = 0, y = 100}}}
+    _G.walls = {{{x = 0, y = 0}, {x = 0, y = 100}}}
     local hit, wall = wallCollision({x = 50, y = 50}, {x = -50, y = 50})
     assert.True(hit)
     assert.is_not.equal(nil, wall)
@@ -67,7 +67,7 @@ describe("level serialization", function()
     local data = {x = 1, nested = {y = "a", 42}}
     -- round-trip via a return value: portable across Lua 5.1 (game target)
     -- and 5.2+ where load() chunks get a sandboxed environment.
-    local chunk = assert(load("return " .. recursiveToString(data, "")))
+    local chunk = assert((loadstring or load)("return " .. recursiveToString(data, "")))
     local result = chunk()
     assert.are.equal(1, result.x)
     assert.are.equal("a", result.nested.y)
@@ -76,7 +76,7 @@ describe("level serialization", function()
 
   it("skips functions", function()
     local text = recursiveToString({f = function() end, keep = 1}, "")
-    local chunk = assert(load("return " .. text))
+    local chunk = assert((loadstring or load)("return " .. text))
     local result = chunk()
     assert.is_nil(result.f)
     assert.are.equal(1, result.keep)

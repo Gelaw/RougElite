@@ -16,8 +16,8 @@ describe("spawn()", function()
 
   it("inserts the entity and applies dead state", function()
     loader.resetWorld()
-    entities = {}
-    ennemyPassives = nil
+    _G.entities = {}
+    _G.ennemyPassives = nil
     local e = spawn(fakeArchetype, {team = 2, dead = true})
     assert.are.equal(1, #entities)
     assert.are.same(e, entities[1])
@@ -25,22 +25,22 @@ describe("spawn()", function()
   end)
 
   it("applies enemy passives to entity-level stats (regression: entity[s] vs ability[s])", function()
-    entities = {}
-    ennemyPassives = {maxLife = .7, damage = .7}
+    _G.entities = {}
+    _G.ennemyPassives = {maxLife = .7, damage = .7}
     local e = spawn(fakeArchetype, {team = 2, maxLife = 200})
     assert.are.equal(140, e.maxLife)
   end)
 
   it("applies enemy passives to ability stats (regression: entity[s] vs ability[s])", function()
-    entities = {}
-    ennemyPassives = {damage = .7}
+    _G.entities = {}
+    _G.ennemyPassives = {damage = .7}
     local e = spawn(fakeArchetype, {team = 2})
     assert.are.equal(7, e.abilities.myAb.damage)
   end)
 
   it("leaves allies (team 1) untouched by enemy passives", function()
-    entities = {}
-    ennemyPassives = {damage = .7}
+    _G.entities = {}
+    _G.ennemyPassives = {damage = .7}
     local e = spawn(fakeArchetype, {team = 1})
     assert.are.equal(10, e.abilities.myAb.damage)
   end)
@@ -50,7 +50,7 @@ describe("invocation circle", function()
   loader.loadGame()
 
   it("newInvocationCircle creates a hidden circle", function()
-    entities = {}
+    _G.entities = {}
     local circle = newInvocationCircle()
     assert.True(circle.hidden)
     assert.are.equal(1, #entities)
@@ -59,7 +59,7 @@ describe("invocation circle", function()
   end)
 
   it("moveTo reveals and resets the animation", function()
-    entities = {}
+    _G.entities = {}
     local circle = newInvocationCircle()
     circle:update(10) -- exhaust the animation, hides itself
     circle:moveTo(42, 84)
@@ -71,7 +71,7 @@ describe("invocation circle", function()
   end)
 
   it("update animates the sweep then fades out", function()
-    entities = {}
+    _G.entities = {}
     local circle = newInvocationCircle()
     circle:moveTo(0, 0)
     local i = 0
