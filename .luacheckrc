@@ -91,28 +91,28 @@ include_files = {
 }
 
 -- CI policy: block ONLY on real global leaks / undefined accesses.
--- Style warnings are silenced so CI failures mean "you introduced a
--- global state issue", not "your line is 121 chars".
---
--- luacheck warning codes (https://luacheck.readthedocs.io/en/stable/warnings.html):
---   0xx syntax/whitespace style (011 long line, 021 empty branch...) -> off
---   1xx unused/undefined globals: 111 setting, 112 mutating, 113 accessing -> BLOCKED
---   2xx values (unused/overwritten locals)                              -> off
---   3xx loops (empty block, unused loop var)                            -> off
---   4xx shadowing                                                        -> off
---   5xx unused args                                                      -> off
-ignore_codes = {
-  "011", "012", "013", "014", "021", "022", "023", "031", "041", "042", "043",
-  "211", "212", "213", "221", "222", "231", "232", "241", "242",
-  "311", "312", "313", "314", "321", "331", "341", "342",
-  "411", "412", "413", "414", "421", "422", "423", "424", "431", "432", "433", "441", "442", "443",
-  "511", "512", "521", "522", "531", "532", "541", "542", "551",
+-- Warning codes: https://luacheck.readthedocs.io/en/stable/warnings.html
+-- Kept active (fail CI):
+--   111 setting undefined global, 112 mutating, 113 accessing,
+--   121/122 setting read-only global/field, 131 unused implicit global,
+--   142/143 undefined field of a global
+-- Ignored (style, pervasive and intentional in this codebase):
+--   2xx unused locals/args/loop vars, 3xx unused values,
+--   4xx shadowing/redefining (nested closures reuse self/dt/entity),
+--   5xx control flow (empty branches kept as TODOs, unbalanced RHS),
+--   6xx formatting (long lines, whitespace)
+ignore = {
+  "211", "212", "213", "214", "221", "222", "223", "231", "232", "233", "241",
+  "311", "312", "313", "314", "321", "331", "341",
+  "411", "412", "413", "421", "422", "423", "431", "432", "433",
+  "511", "512", "521", "531", "532", "541", "542", "551", "561", "571", "581", "582",
+  "611", "612", "613", "614", "621", "631",
 }
--- 111/112/113 (global state) remain active and fail CI when unlisted.
 
+-- Style choices of this codebase: no line-length limit.
+no_max_line_length = true
 unused_args = false
 self = false
-no_max_line_length = true
 
 -- CI runs on every push; disable the cache for consistent output.
 cache = false
