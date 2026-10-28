@@ -17,7 +17,7 @@ stds = stds or {}
 -- luacheck's bundled stds don't know them; declare them and merge into
 -- the active std with +rougelite.
 stds.rougelite = {
-  read_globals = {
+  globals = {
     math = {
       fields = {
         "dist", "angle", "round", "sign", "angleDiff", "normalize",
@@ -74,6 +74,8 @@ globals = {
   -- ==== globals leaked by ability.lua (to be localized when the module
   --      is refactored; declared so CI stays green meanwhile) ====
   "projectile", "angleWall", "deltaAngle", "hits", "wall",
+  -- level.lua
+  "room", "success", "message",
 
   -- ==== data libraries ====
   "abilitiesLibrary", "enemiesLibrary",
