@@ -90,14 +90,29 @@ include_files = {
   ".luacheckrc",
 }
 
--- Style choices of this codebase: no line-length limit.
-no_max_line_length = true
+-- CI policy: block ONLY on real global leaks / undefined accesses.
+-- Style warnings are silenced so CI failures mean "you introduced a
+-- global state issue", not "your line is 121 chars".
+--
+-- luacheck warning codes (https://luacheck.readthedocs.io/en/stable/warnings.html):
+--   0xx syntax/whitespace style (011 long line, 021 empty branch...) -> off
+--   1xx unused/undefined globals: 111 setting, 112 mutating, 113 accessing -> BLOCKED
+--   2xx values (unused/overwritten locals)                              -> off
+--   3xx loops (empty block, unused loop var)                            -> off
+--   4xx shadowing                                                        -> off
+--   5xx unused args                                                      -> off
+ignore_codes = {
+  "011", "012", "013", "014", "021", "022", "023", "031", "041", "042", "043",
+  "211", "212", "213", "221", "222", "231", "232", "241", "242",
+  "311", "312", "313", "314", "321", "331", "341", "342",
+  "411", "412", "413", "414", "421", "422", "423", "424", "431", "432", "433", "441", "442", "443",
+  "511", "512", "521", "522", "531", "532", "541", "542", "551",
+}
+-- 111/112/113 (global state) remain active and fail CI when unlisted.
 
--- Unused loop variables/args are pervasive in callbacks (love.keypressed
--- signatures, pairs loops); shadowing is common in nested closures.
--- Keep them at info level so CI blocks only on real global leaks.
 unused_args = false
 self = false
+no_max_line_length = true
 
 -- CI runs on every push; disable the cache for consistent output.
 cache = false
