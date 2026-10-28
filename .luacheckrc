@@ -5,12 +5,9 @@
 -- exhaustive inventory: any global assigned or read in the root game code
 -- that is NOT listed here is flagged by luacheck (and by CI).
 
-std = "lua51"
-
--- The only external API. love.* is read-only for us; fields (love.graphics,
--- love.timer, ...) are not individually declared as luacheck only tracks
--- the top-level name.
-read_globals = { "love" }
+-- lua51 std + the love2d std from luacheck's bundled definitions
+-- (registers love callbacks like love.update as writable fields).
+std = "lua51+love"
 
 globals = {
   -- ==== top-level functions (engine modules) ====
@@ -26,7 +23,6 @@ globals = {
   -- entity.lua
   "newEntity", "movingEntityInit", "livingEntityInit", "playerInit",
   "newGhost", "entitySetup",
-  -- bestiary.lua (library, assigned below)
   -- ia.lua
   "newTask", "newIA", "basicIA", "IAinit", "IAtargetingUpdate",
   -- ability.lua
@@ -52,18 +48,29 @@ globals = {
   "mousePressedOnWorld", "showHitboxes", "gameover", "debugSpeedAcc",
   "updateTimerClosestEnemy", "lifebarWidth", "interIATUtick",
   "normalfont", "bigassfont", "directions", "north", "south", "east", "west",
+  "pressed",
 
   -- ==== data libraries ====
   "abilitiesLibrary", "enemiesLibrary",
 }
 
--- The editors are standalone apps with their own diverged copies of
--- base.lua. Linting them here would produce false positives against the
--- root config; keep them out until they are deduplicated.
-exclude_files = { "levelEditor/*", "particuleEmiterEditor/*", "*.love" }
+-- Lint only the root game code. The editors are standalone apps with
+-- their own diverged copies of base.lua; .luarocks/ may exist locally
+-- after tooling installation and must never be linted.
+-- (CI runs `luacheck *.lua` — this list is the fallback for bare `luacheck .`)
+include_files = {
+  "*.lua",
+  ".luacheckrc",
+}
 
 -- Style choices of this codebase: no line-length limit.
 no_max_line_length = true
+
+-- Unused loop variables/args are pervasive in callbacks (love.keypressed
+-- signatures, pairs loops); shadowing is common in nested closures.
+-- Keep them at info level so CI blocks only on real global leaks.
+unused_args = false
+self = false
 
 -- CI runs on every push; disable the cache for consistent output.
 cache = false

@@ -27,7 +27,9 @@ jobs:
       - name: Run luacheck
         run: |
           luarocks install luacheck
-          luacheck .
+          # Lint only the root game code (not .luarocks/, not the editors
+          # whose base.lua copies have diverged).
+          luacheck *.lua
 
   love-smoke:
     name: LÖVE2D smoke test
